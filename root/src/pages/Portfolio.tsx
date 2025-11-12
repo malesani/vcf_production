@@ -156,27 +156,28 @@ const Portfolio: React.FC = () => {
 
   const fetchOperations = async (portfolio_uid: string, cancelled?: boolean) => {
     try {
-      if (portfolioInfo!.type! === "managed") {
-        // 🔹 Recupero report di pesatura
-        const pesRes = await get_portfolioWeighing(portfolio_uid);
-
-        // Recupero operations valide 
-        const realOpsRes = await fetch_portfolioAlignmentOperations(portfolio_uid)
-        if (realOpsRes.response.success && realOpsRes.data) {
-          setRealOpsRes(realOpsRes.data)
-        } else {
-          console.warn("⚠️ Nessuna operazione trovata.");
-        }
 
 
-        if (pesRes.response.success) {
-          console.log("✅ Report di pesatura valido:", pesRes.data);
-          // eventualmente potresti salvare il report in uno stato:
-          setValidReportWeighing(pesRes.data);
-        } else {
-          console.warn("⚠️ Nessun report di pesatura valido trovato.");
-        }
+      // 🔹 Recupero report di pesatura
+      const pesRes = await get_portfolioWeighing(portfolio_uid);
+
+      // Recupero operations valide 
+      const realOpsRes = await fetch_portfolioAlignmentOperations(portfolio_uid)
+      if (realOpsRes.response.success && realOpsRes.data) {
+        setRealOpsRes(realOpsRes.data)
+      } else {
+        console.warn("⚠️ Nessuna operazione trovata.");
       }
+
+
+      if (pesRes.response.success) {
+        console.log("✅ Report di pesatura valido:", pesRes.data);
+        // eventualmente potresti salvare il report in uno stato:
+        setValidReportWeighing(pesRes.data);
+      } else {
+        console.warn("⚠️ Nessun report di pesatura valido trovato.");
+      }
+
 
     } catch (err) {
       console.error("Errore nel fetch delle operazioni o pesatura:", err);

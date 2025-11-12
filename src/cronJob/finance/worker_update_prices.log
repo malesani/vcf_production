@@ -1,0 +1,43 @@
+
+[2025-11-12 15:42:37] - START worker_update_prices
+[2025-11-12 15:42:38] REQUIRE MISSING: /var/www/html/auth/authManager.php
+[2025-11-12 15:43:10] - START worker_update_prices
+[2025-11-12 15:43:12] - Service client non configurato (procedo).
+[2025-11-12 15:43:12] - FX cache table OK
+[2025-11-12 15:43:12] - RUN updateCurrentPricesFromPriority (limit=200, chunk=40)
+[2025-11-12 15:43:14] - RESULT success=1 updated=0 msg=Aggiornati 0 simboli (tabella canonica).
+ - ERRORS(4) first 25:
+   - FX rate mancante per USD (AMZN)
+   - FX rate mancante per USD (AAPL)
+   - FX rate mancante per USD (GOOGL)
+   - FX rate mancante per USD (TSLA)
+[2025-11-12 15:43:14] - END worker_update_prices
+[2025-11-12 15:49:33] - START worker_update_prices
+[2025-11-12 15:49:34] - Service client non configurato (procedo).
+[2025-11-12 15:49:34] - FX cache table OK
+[2025-11-12 15:49:34] - RUN updateCurrentPricesFromPriority (limit=200, chunk=40)
+[2025-11-12 15:49:36] - RESULT success=1 updated=0 msg=Aggiornati 0 simboli (tabella canonica).
+ - ERRORS(4) first 25:
+   - FX rate mancante per USD (AMZN)
+   - FX rate mancante per USD (AAPL)
+   - FX rate mancante per USD (GOOGL)
+   - FX rate mancante per USD (TSLA)
+[2025-11-12 15:49:36] - END worker_update_prices
+[2025-11-12 15:54:37] - START worker_update_prices
+[2025-11-12 15:54:38] - Service client non configurato (procedo).
+[2025-11-12 15:54:38] - FX cache table OK
+[2025-11-12 15:54:38] - RUN updateCurrentPricesFromPriority (limit=200, chunk=40)
+[2025-11-12 15:54:40] - RESULT success=1 updated=4 msg=Aggiornati 4 simboli (tabella canonica).
+[2025-11-12 15:54:40] - END worker_update_prices
+[2025-11-12 16:19:56] - START worker_update_prices
+[2025-11-12 16:19:57] - Service client non configurato (procedo).
+[2025-11-12 16:19:57] - FX cache table OK
+[2025-11-12 16:19:57] - RUN updateCurrentPricesFromPriority (limit=200, chunk=40)
+[2025-11-12 16:20:00] - RESULT success=1 updated=4 msg=Aggiornati 4 simboli (tabella canonica).
+[2025-11-12 16:20:00] - END worker_update_prices
+[2025-11-12 16:36:44] - START worker_update_prices
+[2025-11-12 16:36:44] - Service client non configurato (procedo).
+[2025-11-12 16:36:44] - FX cache table OK
+[2025-11-12 16:36:44] - RUN updateCurrentPricesFromPriority (limit=200, chunk=40)
+[2025-11-12 16:36:46] - RESULT success=1 updated=4 msg=Aggiornati 4 simboli (tabella canonica).
+[2025-11-12 16:36:46] - END worker_update_prices

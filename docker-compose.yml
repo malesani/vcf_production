@@ -1,0 +1,49 @@
+version: "3.8"  # Specifica una versione più recente
+
+services:
+  web:
+    build:
+      context: .  # Usa la directory corrente come contesto di build
+      dockerfile: Dockerfile  # Usa il Dockerfile specificato
+    ports:
+      - "${WEB_PORT}"
+    volumes:
+      - ./src:/var/www/html  # Monta la directory del codice sorgente
+      - ./config/php.ini:/usr/local/etc/php/php.ini  # Monta il file php.ini
+      - ./creds:/var/www/creds:ro
+      - ./:/var/www
+    restart: unless-stopped  # Riavvia i container solo se non sono in esecuzione
+    networks:
+      - webnet  # Collega il servizio a una rete personalizzata
+
+  db:
+    image: mysql:8.0  # Usa una versione specifica di MySQL
+    command: --default-authentication-plugin=caching_sha2_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}  # Usa variabili d'ambiente
+      MYSQL_DATABASE: ${MYSQL_DATABASE}   # Database name
+      MYSQL_USER: ${MYSQL_USER}  # Aggiungi un utente separato, se necessario
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}  # Aggiungi una password per l'utente
+    volumes:
+      - db_data:/var/lib/mysql  # Persistenza dei dati
+    restart: always
+    networks:
+      - webnet  # Collega il servizio a una rete personalizzata
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:5.1  # Usa una versione specifica di phpMyAdmin
+    ports:
+      - "${PHPMYADMIN_PORT}"
+    environment:
+      - PMA_HOST=db
+      - PMA_USER=${MYSQL_USER}  # Aggiungi utente separato
+      - PMA_PASSWORD=${MYSQL_PASSWORD}  # Password per l'utente
+    restart: always
+    networks:
+      - webnet  # Collega il servizio a una rete personalizzata
+
+volumes:
+  db_data:  # Volume per la persistenza dei dati del DB
+
+networks:
+  webnet:  # Rete personalizzata per collegare i container

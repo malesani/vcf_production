@@ -107,6 +107,7 @@ const SuggestedAlertsList: React.FC<Props> = ({
                                                     color="success"
                                                     size="sm"
                                                     className="me-2"
+                                                    disabled
                                                     onClick={() => {
                                                         setSelectedOp(op);
                                                         setOpenExecuteModal(true);

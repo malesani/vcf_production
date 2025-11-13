@@ -27,58 +27,7 @@ export const CustomOperationComponent: React.FC<CustomOperationProps> = ({ portf
 
     const operation_FieldConfig: FieldConfig<OperationItem>[] = [
         {
-            name: 'operation',
-            label: "operazione da esseguire",
-            type: "selectbox",
-            grid: { md: 12 },
-
-            options: [
-                {
-                    text: "Compra", value: "buy", renderCard: ({ isSelected, onSelect }) => (
-                        <div
-                            onClick={onSelect}
-                            style={{
-                                backgroundColor: isSelected ? "#4caf50" : "#c8e6c9",
-                                color: "white",
-                                padding: "8px 12px",
-                                borderRadius: 6,
-                                cursor: "pointer",
-                                textAlign: "center",
-                            }}
-                        >
-                            <MDBIcon fas icon="chart-line" className="" />
-                            <span className="mx-2">Compra</span>
-                        </div>
-                    ),
-                },
-                {
-                    text: "Vendi", value: "sell",
-                    renderCard: ({ isSelected, onSelect }) => (
-
-                        <div
-                            onClick={onSelect}
-                            style={{
-                                backgroundColor: isSelected ? "#ff4d4d" : "#ffcccc",
-                                color: "white",
-                                padding: "8px 12px",
-                                borderRadius: 6,
-                                cursor: "pointer",
-                                textAlign: "center"
-
-                            }}
-                        >
-                            <MDBIcon fas icon="euro-sign" />
-                            <span className="mx-2">Vendi</span>
-                        </div>
-                    ),
-
-                }
-            ],
-            customElementKey: "cards",
-
-        },
-        {
-            name: "symbol", label: "Seleziona Stock", required: true, grid: { md: 8 },
+            name: "symbol", label: "Seleziona Asset", required: true, grid: { md: 6 },
             type: "selectbox", options: stocksInfoOptions as SelectData[],
             properties: {
                 largeDataSearch: true
@@ -88,17 +37,19 @@ export const CustomOperationComponent: React.FC<CustomOperationProps> = ({ portf
             name: 'unitQuantity',
             label: 'Quantita',
             type: 'number',
-            properties: { defaultValue: Number(0) },
+            properties: { 
+                defaultValue: 1,
+                minValue: 1
+            },
             required: true,
-            grid: { md: 6 },
+            grid: { md: 3 },
         },
         {
             name: 'unitaryPrice',
             label: 'Valore Unitario',
             type: 'number',
-            properties: { defaultValue: 0 },
             required: true,
-            grid: { md: 6 },
+            grid: { md: 3 },
         },
 
     ];
@@ -122,47 +73,27 @@ export const CustomOperationComponent: React.FC<CustomOperationProps> = ({ portf
             })
     }, []);
 
-
-    // if (loadingMode) {
-    //     return (<General_Loading theme="pageLoading" title='' />);
-    // }
-
     return (
         <>
             <MDBCard className="mt-4 mb-4">
                 <MDBCardHeader className="py-3 px-4 border-bottom" style={{ backgroundColor: "rgb(38, 53, 80)", color: "white" }}>
                     <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
-                        <MDBCardTitle tag="h5" className="mb-2 mb-md-0 d-flex align-items-center">
-                            Ricerca e Acquisto Azioni
+                        <MDBCardTitle tag="h5" className="m-0 d-flex align-items-center">
+                            <MDBIcon fas icon="plus" className="me-2" />Acquisto asset
                         </MDBCardTitle>
                     </div>
                 </MDBCardHeader>
-                <MDBCardBody>
-                    <GeneralForm<OperationItem, {}>
+                <MDBCardBody className="pt-2">
+                    <GeneralForm<OperationItem, {portfolio_uid: string; operation: "buy"}>
                         mode="create"
                         fields={operation_FieldConfig}
-                        createData={async (formData) => {
-                            console.log(formData, "formdata")
-                            try {
-                                let item = {
-                                    portfolio_uid: portfolioInfo.portfolio_uid,
-                                    symbol: formData?.symbol,
-                                    operation: formData.operation,
-                                    unitaryPrice: formData.unitaryPrice,
-                                    unitQuantity: formData.unitQuantity
-                                } as OperationItem
-
-                                await createOperation(item)
-                                // setDateLastOperation("now")
-                            } catch (err) {
-                                console.error('Errore caricamento dati portfolio:', err);
-                            } finally {
-                                // setLoadingMode(false);
-                            }
-
-                            return { response: { success: true, message: 'OK', data: formData }, data: formData };
-                        }}
-                        createBtnProps={{ label: 'Conferma operazione', className: " bg-primary border-primary bg-gradient shadow-0" }}
+                        params={{portfolio_uid: portfolioInfo.portfolio_uid, operation: "buy"}}
+                        createData={createOperation}
+                        createBtnProps={{ 
+                            icon: 'chart-line',
+                            label: 'Conferma Acquisto', 
+                            labelSaving: 'Acquisto ...',
+                            className: "bg-primary border-primary bg-gradient shadow-0" }}
                         onSuccess={async () => {
                             return { response: { success: true, message: 'OK' }};
                         }}

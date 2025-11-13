@@ -57,10 +57,14 @@ const data = [
     {
         "mese": "Settembre",
         "Percentuale": 0.9,
-
     }
-
 ];
+
+
+const managedName = {
+    managed1: "Portafoglio conservativo",
+    managed2: "Crescita Bilanciata",
+};
 
 
 const PortfoliosDashboard: React.FC = () => {
@@ -72,6 +76,10 @@ const PortfoliosDashboard: React.FC = () => {
 
     const [statusMap, setStatusMap] = useState<Record<string, string>>({});
 
+    const managedName: Record<string, string> = {
+        managed1: "Portafoglio conservativo",
+        managed2: "Crescita Bilanciata",
+    };
 
     // ── Filtri tabella ─────────────────────────────────────────────────────────
     const [filters, setFilters] = useState<TableFilters<PortfolioInfo>>({
@@ -333,7 +341,10 @@ const PortfoliosDashboard: React.FC = () => {
                                     <div>
                                         <div className="fw-bold">
                                             <i className="fas fa-wallet"></i>{" "}
-                                            {statusMap[child.type.toUpperCase()] || child.type.toUpperCase()}
+                                            {child.type == 'managed' ?
+                                                managedName[child.managed_uid]
+                                                : "Personale"
+                                            }
                                         </div>
                                     </div>
 
@@ -374,7 +385,7 @@ const PortfoliosDashboard: React.FC = () => {
                                     {/* Valore attuale */}
                                     <div className="d-flex justify-content-between align-items-center mb-2">
                                         <MDBCardText className="text-muted small mb-0">Valore Attuale</MDBCardText>
-                                        <h5 className="fw-bold mb-0">{child.totals!.total_with_cash ?? 0 } €</h5>
+                                        <h5 className="fw-bold mb-0">{child.totals!.total_with_cash ?? 0} €</h5>
                                     </div>
 
                                     <hr />

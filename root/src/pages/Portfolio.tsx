@@ -493,8 +493,9 @@ const Portfolio: React.FC = () => {
 
               {/* {realOpsRes && */}
               <SuggestedAlertsList
-                realOpsRes={validReportWeighing}
-                setSelectedOp={setValidReportWeighing}
+                alertsInfo={validReportWeighing}
+                realOpsRes= {realOpsRes}
+                setSelectedOp={setSelectedOp}
                 setOpenExecuteModal={setOpenExecuteModal}
                 setOpenPreviewModal={setOpenPreviewModal}
               />

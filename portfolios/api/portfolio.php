@@ -120,10 +120,10 @@ try {
 
                     http_response_code(200);
                     echo json_encode($reqResp->toArray(
-                        success: true,
-                        message: 'portfolio.assetPricesFetched',
-                        error: null,
-                        data: $res
+                        success: $res['success'] ?? false,
+                        message: $trad->lang($res['message'] ?? 'portfolio.assetPrices.200.success'),
+                        error: $res['error'] ?? null,
+                        data: $res['data'] ?? null,
                     ));
                     break;
 

@@ -25,7 +25,7 @@ type Level = "Principiante" | "Intermedio" | "Avanzato";
 interface TutorialCardProps {
   title: string;
   level: Level;
-  levelColor: string || any;
+  levelColor: string | any;
   description: string;
   ctaLabel: string;
 }

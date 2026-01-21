@@ -25,14 +25,14 @@ type Level = "Principiante" | "Intermedio" | "Avanzato";
 interface TutorialCardProps {
   title: string;
   level: Level;
-  levelColor: string;
+  levelColor: string || any;
   description: string;
   ctaLabel: string;
 }
 
 const TutorialCard: React.FC<TutorialCardProps> = ({
   title,
-level, levelColor, description, ctaLabel,
+  level, levelColor, description, ctaLabel,
 }) => (
   <MDBCard className="h-100 shadow-1" style={{ borderRadius: "18px" }}>
     {/* Header / video placeholder */}
@@ -280,7 +280,7 @@ const Tutorials: React.FC = () => {
       </MDBContainer>
 
       {/* FAQ */}
-      <div style={{ padding: "60px 0" }}>   
+      <div style={{ padding: "60px 0" }}>
         <MDBContainer style={{ maxWidth: "800px" }}>
           <MDBAccordion flush initialActive={1}>
             <MDBAccordionItem

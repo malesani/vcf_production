@@ -18,10 +18,11 @@ import { getStocksInfo } from '../api_module_v1/FinancialDataRequest';
 import { PortfolioInfo, PortfolioAssets, create_portfolio } from '../api_module/portfolio/PortfolioData';
 import { fetchManagedPortfoliosActive, PortManagedInfo } from '../api_module/portfolioManaged/PortManagedData';
 import { getUserInfo, APIUserInfo } from "../api_module_v1/UserRequest"
+import { useIsMobile } from "../app_components/ResponsiveModule";
 
 const NewPortfolio: React.FC = () => {
     const [loadingMode, setLoadingMode] = useState<boolean>(false);
-
+    const isMobile = useIsMobile(992);
     const [stocksInfoOptions, setStocksInfoOptions] = useState<SelectData[] | null>(null);
     const [managedPortfoliosOptions, setManagedPortfolios] = useState<SelectData[] | null>(null);
     const [UserInfoUid, setUserInforUid] = useState<string>("")
@@ -58,6 +59,11 @@ const NewPortfolio: React.FC = () => {
                     setManagedPortfolios(resp.data.map(managedPortsInfo => ({
                         value: managedPortsInfo.managed_uid,
                         text: managedPortsInfo.title,
+                        description: managedPortsInfo.description,
+                        adv_growthPercentFrom: managedPortsInfo.adv_growthPercentFrom,
+                        adv_growthPercentTo: managedPortsInfo.adv_growthPercentTo,
+                        adv_timeRangeFrom: managedPortsInfo.adv_timeRangeFrom,
+                        adv_timeRangeTo: managedPortsInfo.adv_timeRangeTo,
                     })))
                 }
             })
@@ -77,7 +83,7 @@ const NewPortfolio: React.FC = () => {
 
     // SET LOADING
     if (loadingMode) {
-        return (<General_Loading theme="pageLoading" title='Nuovo Progetto' />);
+        return (<General_Loading theme="pageLoading" title='' />);
     }
 
 
@@ -114,7 +120,7 @@ const NewPortfolio: React.FC = () => {
             ]
         },
         {
-            name: "isDraft", label: "Portafoglio di test", grid: { md: 8 }, type: "checkbox",
+            name: "isDraft", label: "Portafoglio di test", grid: { md: 8 }, type: "checkbox", class_name: "d-flex align-items-center",
 
         },
 
@@ -131,52 +137,55 @@ const NewPortfolio: React.FC = () => {
                         );
 
                         return <>
-                            <MDBCard className="shadow-sm p-3" style={{ borderRadius: "12px" }}>
-                                <MDBCardBody>
-                                    {/* Titolo e badge rischio */}
-                                    <div className="d-flex justify-content-between align-items-start mb-2">
-                                        <div>
-                                            <MDBCardTitle className="fw-bold mb-1">
-                                                {selectedPortfolio ? selectedPortfolio.text : "Seleziona un modello"}
+                            <MDBCard className="shadow-sm p-3 p-md-4" style={{ borderRadius: "12px" }}>
+                                <MDBCardBody className="p-0">
+                                    {/* Titolo + badge (mobile stack, desktop row) */}
+                                    <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
+                                        <div className="w-100">
+                                            <MDBCardTitle className="fw-bold mb-1 fs-6 fs-md-5">
+                                                {selectedPortfolio ? selectedPortfolio.text : ""}
                                             </MDBCardTitle>
-                                            <MDBCardText className="text-muted small">
-                                                Portafoglio ad alta crescita focalizzato su tecnologia e innovazione.
+                                            <MDBCardText className="text-muted small mb-0">
+                                                {selectedPortfolio ? selectedPortfolio.description : ""}
                                             </MDBCardText>
                                         </div>
-                                        <MDBBadge color="danger" pill>
-                                            Rischio Alto
-                                        </MDBBadge>
-                                    </div>
 
-                                    {/* Dati principali */}
-                                    <MDBRow className="text-center my-3">
-                                        <MDBCol md="3" sm="6" className="mb-2">
-                                            <h5 className="text-success fw-bold mb-0">+15.4%</h5>
-                                            <small className="text-muted">Performance Annua</small>
-                                        </MDBCol>
-                                        <MDBCol md="3" sm="6" className="mb-2">
-                                            <h5 className="fw-bold mb-0">32</h5>
-                                            <small className="text-muted">Asset</small>
-                                        </MDBCol>
-                                        <MDBCol md="3" sm="6" className="mb-2">
-                                            <h5 className="fw-bold mb-0">0.95%</h5>
-                                            <small className="text-muted">Commissione</small>
-                                        </MDBCol>
-                                        <MDBCol md="3" sm="6" className="mb-2">
-                                            <h5 className="fw-bold mb-0">€2,000</h5>
-                                            <small className="text-muted">Investimento Min.</small>
-                                        </MDBCol>
+                                        {/* <MDBBadge color="danger" pill className="align-self-start align-self-md-auto">
+                                            Rischio Alto
+                                        </MDBBadge> */}
+                                    </div>
+                                  
+                                    {/* Dati principali (mobile 2x2, desktop 4 cols) */}
+                                    <MDBRow className="text-center g-2 my-3">
+                                        {selectedPortfolio &&
+                                            <MDBCol xs="6" md="6">
+                                                <div className="p-2 rounded bg-light h-100">
+                                                    <div className="fw-bold text-success fs-6 fs-md-5">{selectedPortfolio ? selectedPortfolio.adv_growthPercentFrom : ""}%</div>
+                                                    <small className="text-muted d-block">Rendimento Annuale Atteso</small>
+                                                </div>
+                                            </MDBCol>
+                                        }
+                                        {isMobile && <hr className="my-3" />}
+
+                                        {selectedPortfolio &&
+                                            <MDBCol xs="6" md="6">
+                                                <div className="p-2 rounded bg-light h-100">
+                                                    <div className="fw-bold fs-6 fs-md-5">{selectedPortfolio ? selectedPortfolio.adv_timeRangeFrom : ""} - {selectedPortfolio ? selectedPortfolio.adv_timeRangeTo : ""} anni</div>
+                                                    <small className="text-muted d-block">Orizzonte Temporale Consigliato</small>
+                                                </div>
+                                            </MDBCol>
+                                        }
                                     </MDBRow>
 
                                     {/* Team di gestione */}
-                                    <hr />
+                                    {/* <hr className="my-3" />
                                     <div>
                                         <p className="fw-bold mb-1">Team di Gestione</p>
                                         <p className="text-muted small mb-0">
                                             Gestito da <strong>Alessandro Verdi</strong>, esperto in investimenti
                                             tecnologici e growth stocks.
                                         </p>
-                                    </div>
+                                    </div> */}
                                 </MDBCardBody>
                             </MDBCard>
                         </>;
@@ -221,12 +230,24 @@ const NewPortfolio: React.FC = () => {
             <MDBRow className="d-flex justify-content-center align-items-center">
                 <MDBCol className="mb-3" md="10">
                     <MDBCard className="d-flex flex-column">
-                        <div className='p-4 d-flex align-items-center flex-column' style={{ backgroundColor: "rgb(38, 53, 80) ", color: "white", borderTopRightRadius: "0.5rem", borderTopLeftRadius: "0.5rem" }}>
-                            <div className="">
-                                <span className="fs-2 fw-bold" >Crea Nuovo Portafoglio</span>
+                        <div
+                            className="p-3 p-md-4 d-flex align-items-center flex-column text-center"
+                            style={{
+                                backgroundColor: "rgb(38, 53, 80)",
+                                color: "white",
+                                borderTopRightRadius: "0.5rem",
+                                borderTopLeftRadius: "0.5rem",
+                            }}
+                        >
+                            <div className="w-100">
+                                <span className="fw-bold fs-4 fs-md-2 d-block">
+                                    Crea Nuovo Portafoglio
+                                </span>
                             </div>
-                            <span className="fs-6 text-center mb-2">
-                                Personalizza il tuo nuovo portafoglio di investimenti seguendo i nostri passaggi guidati. Configura ogni dettaglio secondo le tue esigenze e obiettivi finanziari.
+
+                            <span className="text-white-50 fs-6 mt-2 mb-0" style={{ maxWidth: 720 }}>
+                                Personalizza il tuo nuovo portafoglio di investimenti seguendo i nostri passaggi guidati.
+                                Configura ogni dettaglio secondo le tue esigenze e obiettivi finanziari.
                             </span>
                         </div>
                         <GeneralForm<PortfolioInfo, { user_uid: string; }>

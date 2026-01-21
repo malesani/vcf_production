@@ -9,15 +9,18 @@ import { PortManagedInfo } from '../../api_module/portfolioManaged/PortManagedDa
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ExecutedOperationSelect, createCashOperation } from "../../api_module/operations/OperationsRequest";
 import { ResponsivePie } from '@nivo/pie'
+import { SymbolWeighing, OperationItem } from '../../api_module/operations/OperationsRequest';
 
 import { GeneralForm, FieldConfig } from "../../app_components/GeneralForm";
 import { OperationChangeImportMonth } from "../../api_module/operations/OperationsRequest";
-
 import { General_Loading } from '../../app_components/General_Loading';
+import { useIsMobile } from "../../app_components/ResponsiveModule";
 
 interface Props {
     portfolio: PortfolioInfo;
     managedInfo?: PortManagedInfo;
+    pesature: SymbolWeighing[] | undefined;
+    realOps: OperationItem[];
     assetPrices?: Record<string, number | null>;
     onReloadPrices?: (() => Promise<void>) | null;
     onReloadPortfolio?: (() => Promise<void>) | null;
@@ -32,6 +35,8 @@ const toNumber = (val: any): number => {
 
 const fmtEUR = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 }).format(toNumber(n));
 
+
+
 type ChartDatum = {
     id: string;
     label: string;
@@ -39,12 +44,10 @@ type ChartDatum = {
     color: string;
 };
 
-const PortfolioComposition: React.FC<Props> = ({ portfolio, managedInfo, assetPrices, onReloadPrices, onReloadPortfolio, onReloadOperations }) => {
-
-
-    const { title, type, target, time_horizon_years, cash_position, automatic_savings, assets = [] } = portfolio;
+const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices, onReloadPrices, onReloadPortfolio, onReloadOperations, pesature = [] }) => {
+    const { cash_position, assets = [] } = portfolio;
     const randomColor = () => `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`;
-
+    const isMobile = useIsMobile(992);
     const [data, setData] = useState<ChartDatum[]>([]);
 
     const [loadingSync, setLoadingSync] = useState(false);
@@ -64,16 +67,16 @@ const PortfolioComposition: React.FC<Props> = ({ portfolio, managedInfo, assetPr
                 id: a.symbol,
                 label: a.symbol,
                 value: a.value_now as number,
-                color: randomColor(),
+                color: "green",
             }));
 
         const liquidita: ChartDatum = {
-            id: "liquidita",
-            label: "Liquidità",
+            id: "Liquidita",
+            label: "green",
             value: Math.abs(cash_position),
             color: "red",
         };
-
+        console.log(formattedAssets, liquidita)
         setData([...formattedAssets, liquidita]);
     }, [assets, cash_position]);
 
@@ -94,7 +97,6 @@ const PortfolioComposition: React.FC<Props> = ({ portfolio, managedInfo, assetPr
         };
     }, [assets, pricesMap, cash_position]);
 
-
     //template 
     const renderAssetRows = () => {
         const total = totalAssetsNow || 0;
@@ -114,55 +116,63 @@ const PortfolioComposition: React.FC<Props> = ({ portfolio, managedInfo, assetPr
             const sign = diffPct > 0 ? '+' : diffPct < 0 ? '' : '';
 
             return (
-                <MDBListGroupItem key={a.symbol} className="w-100 d-flex justify-content-between align-items-center gap-2 small text-nowrap">
-                    <div className='d-flex align-items-center w-20'>
-                        <span className="fw-bold">{a.symbol}</span>
+                <MDBListGroupItem key={a.symbol} className="w-100 d-flex justify-content-between align-items-center gap-2 small text-nowrap p-3 mb-3 flex-wrap flex-md-nowrap" style={{ borderRadius: "15px", background: "rgb(239,246,255)", border: "rgba(190, 219, 255, 1) solid 1px" }}>
+                    <div className="d-flex align-items-center w-50 ">
+                        {!isMobile &&
+                            <div className='me-3 d-flex align-center justify-content-center w-25' style={{ borderRadius: "15px", background: "green", color: "white", padding: "7px 16px" }}>
+                                <span className="fw-bold">{a.symbol}</span>
+                            </div>
+                        }
+                        <div className=' gap-3'>
+                            <div className="text-uppercase fw-bold">
+                                {a.symbol}
+                            </div>
+                            <span className="fw-bold me-3">{qty} asset</span>
+                            <span className="fw-bold text-muted">{a.unitaryPrice_now} €/un</span>
+                        </div>
                     </div>
 
-                    <div className='d-flex flex-row align-items-center gap-3'>
-                        <span className="fw-bold">{qty} asset</span>
-                        <span className="fw-bold text-muted">{a.unitaryPrice_now} €/un</span>
-                    </div>
+                    <div className={isMobile ? 'w-100' : ""}>
+                        <div className='d-flex align-items-center justify-content-md-end mb-2'>
+                            <small className={`text-${trendColor}`}>
+                                <MDBIcon fas icon={trendIcon} className="me-1" />
+                                {sign}{diffPct.toFixed(1)}% ({fmtEUR(diffVal)})
+                            </small>
+                        </div>
+                        <div className={isMobile ? 'w-100 d-flex' : ""}>
+                            <MDBBtn
+                                size="sm"
+                                color="danger"
+                                className={isMobile ? 'w-50 text-muted p-0 ms-1' : "text-muted p-0 ms-1"}
+                                onClick={() => {
+                                    setSelectedOp(a as ExecutedOperationSelect);
+                                    setEditOpen(true);
+                                }}
+                                title="vendi"
+                            >
+                                <span className="text-white p-2">Vendi</span>
+                            </MDBBtn>
 
-                    <div className='d-flex align-items-center'>
-                        <small className={`text-${trendColor}`}>
-                            <MDBIcon fas icon={trendIcon} className="me-1" />
-                            {sign}{diffPct.toFixed(1)}% ({fmtEUR(diffVal)})
-                        </small>
-                    </div>
+                            <MDBBtn
+                                size="sm"
+                                color="success"
+                                className={isMobile ? 'w-50 text-muted p-0 ms-1' : "text-muted p-0 ms-1"}
 
-                    <div className="d-flex align-center">
-                        <MDBBtn
-                            size="sm"
-                            color="danger"
-                            className="text-muted p-0"
-                            onClick={() => {
-                                setSelectedOp(a as ExecutedOperationSelect);
-                                setEditOpen(true);
-                            }}
-                            title="vendi"
-                        >
-                            <b className="text-white p-2">Sell</b>
-                        </MDBBtn>
+                                onClick={() => {
+                                    setSelectedOp(a as ExecutedOperationSelect);
+                                    setEditOpen(true);
+                                }}
+                                title="compra"
+                            >
+                                <b className="text-white p-2">Compra</b>
 
-                        <MDBBtn
-                            size="sm"
-                            color="success"
-                            className="text-muted p-0 ms-1"
-                            onClick={() => {
-                                setSelectedOp(a as ExecutedOperationSelect);
-                                setEditOpen(true);
-                            }}
-                            title="compra"
-                        >
-                            <b className="text-white p-2">Buy</b>
-
-                        </MDBBtn>
+                            </MDBBtn>
+                        </div>
                     </div>
                 </MDBListGroupItem>
             );
         });
-        return <MDBListGroup className="mx-2" light>
+        return <MDBListGroup className="mx-1" light>
             {assets_li}
         </MDBListGroup>;
     };
@@ -197,92 +207,140 @@ const PortfolioComposition: React.FC<Props> = ({ portfolio, managedInfo, assetPr
             {loadingSync && (
                 <General_Loading theme="formLoading" text="Caricamento Portafogli" />
             )}
-            <div className="d-flex flex-wrap justify-content-center w-100">
+            <div className="align-items-center d-flex flex-wrap justify-content-center w-100">
                 {assets.length > 0 &&
-                <div className="flex-shrink-1" style={{ maxWidth: "650px", minWidth: "350px", minHeight: "300px" }}>
-                    <ResponsivePie
-                        data={data}
-                        margin={{ top: 40, right: 90, bottom: 40, left: 90 }}
-                        innerRadius={0.5}
-                        padAngle={0.6}
-                        cornerRadius={2}
-                        activeOuterRadiusOffset={8}
-                        arcLinkLabelsSkipAngle={10}
-                        arcLinkLabelsTextColor="#333333"
-                        arcLinkLabelsThickness={2}
-                        arcLinkLabelsColor={{ from: 'color' }}
-                        arcLabelsSkipAngle={10}
-                        arcLabelsTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
-                    />
-                </div>}
-                <div className="d-flex flex-column flex-nowrap flex-grow-1 justify-content-center overflow-auto p-3">
-                    <MDBAlert open className='d-flex align-items-center justify-content-between m-0 py-2 px-2 ps-3 gap-2' color='light' style={{ minWidth: "100%" }}>
+                    <div
+                        className="w-100 flex-grow-1 flex-md-grow-0"
+                        style={{
+                            height: 250,
+                            maxWidth: 450,
+                            minWidth: 300,
+                        }}
+                    >
+                        <ResponsivePie /* or Pie for fixed dimensions */
+                            data={data}
+                            margin={{ top: 10, right: 140, bottom: 10, left: 30 }}
+                            innerRadius={0.5}
+                            padAngle={0.6}
+                            cornerRadius={2}
+                            activeOuterRadiusOffset={8}
+                            enableArcLinkLabels={false}
+                            arcLinkLabelsSkipAngle={10}
+                            arcLinkLabelsTextColor="#333333"
+                            arcLinkLabelsThickness={2}
+                            arcLinkLabelsColor={{ from: 'color' }}
+                            enableArcLabels={false}
+                            arcLabelsSkipAngle={10}
+                            arcLabelsTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
+                            legends={[
+                                {
+                                    anchor: 'right',
+                                    direction: 'column',
+                                    translateX: 135,
+                                    translateY: 0,
+                                    itemWidth: 100,
+                                    itemHeight: 30,
+                                    symbolShape: 'circle'
+                                }
+                            ]}
+                        />
+                    </div>
+                }
+                <div className="d-flex flex-column flex-nowrap flex-grow-1 justify-content-center overflow-auto">
+                    <div className='d-flex flex-wrap align-items-center justify-content-between m-0 py-2 px-2 gap-2' style={{ minWidth: "100%" }}>
                         <div className="d-flex align-items-center text-nowrap">
-                            <MDBIcon fas icon="credit-card" className="text-dark me-2" />
-                            <span className="me-2 fw-bold">Liquidità Disponibile: </span>
+                            <span className="me-2 fw-bold text-muted">Liquidità Disponibile: </span>
+                            <span className="fw-bold text-muted">{fmtEUR(toNumber(cash_position))}</span>
                         </div>
-                        <span className="fw-bold text-muted">{fmtEUR(toNumber(cash_position))}</span>
-                        <div className="d-flex gap-2">
+                        <div className={isMobile ? 'w-100 my-2 d-flex gap-2' : "d-flex gap-2"}>
                             <MDBBadge
                                 color="danger" light
-                                style={{ cursor: "pointer" }}
-                                className="d-flex align-items-center justify-content-center border border-1 border-danger"
+                                style={{ cursor: "pointer", background: "none" }}
+                                className={isMobile ? 'w-50 d-flex align-items-center justify-content-center border border-1 border-danger' : "d-flex align-items-center justify-content-center border border-1 border-danger"}
+
                                 onClick={() => { setCashKind('withdraw'); setCashOpen(true); }}
                                 disabled={loadingSync}
                                 title="Preleva"
                             >
-                                <span color="danger">PRELEVA</span>
+                                <span color="danger">Preleva</span>
                             </MDBBadge>
 
                             <MDBBadge
                                 color="success" light
-                                style={{ cursor: "pointer" }}
-                                className="d-flex align-items-center justify-content-center border border-1 border-success"
+                                style={{ cursor: "pointer", background: "none" }}
+                                className={isMobile ? 'w-50 d-flex align-items-center justify-content-center border border-1 border-success' : "d-flex align-items-center justify-content-center border border-1 border-success"}
                                 onClick={() => { setCashKind('deposit'); setCashOpen(true); }}
                                 disabled={loadingSync}
                                 title="Deposita"
                             >
-                                <span color="danger">DEPOSITA</span>
+                                <span color="danger">Deposita</span>
                             </MDBBadge>
                         </div>
-                    </MDBAlert>
-                    {assets.length > 0 ? renderAssetRows() : <div className="w-100 d-flex justify-content-center align-items-center gap-2 small text-nowrap"><p className="s-muted small mt-2 mb-0">Nessun asset presente.</p></div>}
+                    </div>
+                    {assets.length > 0 ? renderAssetRows() : <div className="w-100 d-flex justify-content-center align-items-center gap-2 small text-nowrap border-bottom"><p className="s-muted small my-2">Nessun asset presente.</p></div>}
                     <div className="d-flex flex-column justify-content-between">
                         <div className="">
-                            {assets.filter((a) => a.unitQuantity === 0)
-                                .map((a) => (
-                                    <div key={a.symbol} className="d-flex justify-content-between align-items-center small mb-3">
-                                        <div className='d-flex align-items-center w-25 '>
-                                            <span className="fw-bold">{a.symbol}</span>
-                                        </div>
+                            <MDBListGroup className="mx-1" light >
+                                {pesature
+                                    .filter(a => a.unitQuantity_now === 0)
+                                    .map(a => {
 
-                                        <div className='d-flex align-items-center w-25'>
-                                            <span className="fw-bold">0 asset</span>
-                                        </div>
+                                        // QUI ottieni l'oggetto corrispondente di realOps ⬇⬇⬇
+                                        const realOp = realOps.find(op => op.symbol === a.symbol);
 
-                                        <div className='d-flex align-items-center'>
-                                            <span className="fw-bold text-info mx-3">Target pesatura ottimale</span>
-                                            <span className="fw-bold text-info">22</span>
+                                        if (!realOp) return null; // se non corrisponde nulla, non renderizzare
 
-                                        </div>
-                                        <div className="d-flex justify-content-end w-100%">
-                                            <MDBBtn
-                                                size="sm"
-                                                color="success"
-                                                className="text-muted p-0 ms-2"
-                                                onClick={() => {
-                                                    setSelectedOp(a as ExecutedOperationSelect);
-                                                    setEditOpen(true);
-                                                }}
-                                                title="Modifica"
-                                            >
-                                                <b className="text-white p-2">Buy</b>
-                                            </MDBBtn>
-                                        </div>
-                                    </div>
+                                        return (
+                                            <MDBListGroupItem className="w-100 d-flex justify-content-between align-items-center gap-2 small text-nowrap flex-wrap flex-md-nowrap p-3 mb-3" style={{ borderRadius: "15px", background: "rgb(239,246,255)", border: "rgba(190, 219, 255, 1) solid 1px" }} key={a.symbol}>
+                                                <div className="d-flex align-items-center w-50 ">
+                                                    {!isMobile &&
+                                                        <div className='me-3 d-flex align-center justify-content-center w-25' style={{ borderRadius: "15px", background: "green", color: "white", padding: "7px 16px" }}>
+                                                            <span className="fw-bold">{a.symbol}</span>
+                                                        </div>
+                                                    }
+                                                    <div className=' gap-3'>
+                                                        <div className="text-uppercase fw-bold">
+                                                            {a.symbol}
+                                                        </div>
+                                                        <span className="fw-bold me-3">{a.unitQuantity_now} asset</span>
+                                                        <span className="fw-bold text-muted">{realOp.unitaryPrice} €/un</span>
+                                                    </div>
+                                                </div>
 
-                                ))
-                            }
+                                                <div className='d-flex align-items-center gap-2'>
+                                                    <span className="fw-bold text-info">Target:</span>
+                                                    <span className="fw-bold text-info">{a.unitQuantity_suggested}</span>
+                                                </div>
+                                                <div
+                                                    className={isMobile ? 'w-100 d-flex justify-content-end' : "d-flex justify-content-end"}>
+                                                    <MDBBtn
+                                                        size="sm"
+                                                        color="success"
+                                                        className={isMobile ? 'w-100 text-muted p-0 ms-1' : "text-muted p-0 ms-1"}
+                                                        onClick={() => {
+                                                            const el = {
+                                                                portfolio_uid: realOp.portfolio_uid,
+                                                                symbol: realOp.symbol,
+                                                                unitQuantity: realOp.unitQuantity,
+                                                                unitaryPrice_lastOp: 0,
+                                                                unitaryPrice_now: realOp.unitaryPrice,
+                                                                value_now: realOp.unitaryPrice,
+                                                            }
+                                                            setSelectedOp(el as ExecutedOperationSelect);
+                                                            setEditOpen(true);
+                                                        }}
+                                                        title="Modifica"
+                                                    >
+                                                        <b className="text-white p-2">Buy</b>
+                                                    </MDBBtn>
+                                                </div>
+
+                                            </MDBListGroupItem>
+                                        );
+                                    })
+                                }
+                            </MDBListGroup>
+
                         </div>
                     </div>
                 </div>

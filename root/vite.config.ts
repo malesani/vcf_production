@@ -53,6 +53,18 @@ export default defineConfig({
         target: 'http://localhost:4500',
         changeOrigin: true,
       },
+      '/smtp/api': {
+        target: 'http://localhost:4500',
+        changeOrigin: true,
+      },
+      '/quiz/api': {
+        target: 'http://localhost:4500',
+        changeOrigin: true,
+      },
+      '/presetsData/api': {
+        target: 'http://localhost:4500',
+        changeOrigin: true,
+      },
     },
   },
 })

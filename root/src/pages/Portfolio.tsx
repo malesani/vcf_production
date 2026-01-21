@@ -32,6 +32,8 @@ import {
   PortfolioInfo,
   get_portfolioByUID,
   get_assetPrices,
+  get_assetsEarnings,
+  AssetEarning
 } from '../api_module/portfolio/PortfolioData';
 
 import {
@@ -99,6 +101,9 @@ const Portfolio: React.FC = () => {
   const [validReportWeighing, setValidReportWeighing] = useState<SymbolWeighing[]>();
   const [realOpsRes, setRealOpsRes] = useState<OperationItem[]>([]);
 
+  //profit soldi
+  const [profit, setProfit] = useState<AssetEarning[]>([]);
+
   //last operation
   const [dateLastOperation, setDateLastOperation] = useState<string>("");
 
@@ -146,18 +151,26 @@ const Portfolio: React.FC = () => {
     }
   };
 
-  // const fetchSuggestedOps = async (portfolio_uid: string, cancelled?: boolean) => {
-  //   const sug = await fetchSuggestedOperations(portfolio_uid);
-  //   if (!cancelled && sug.response.success) {
-  //     setSuggestedOperations(sug.data ?? null);
-  //     setSuggesteAlertPdf("");
-  //   }
-  // };
+
+  const fetchProfit = async (portfolio_uid: string, cancelled?: boolean) => {
+    try {
+      // 🔹 Recupero report di pesatura
+      const pesRes = await get_assetsEarnings({ portfolio_uid });
+
+      if (pesRes.response.success && pesRes.data) {
+        setProfit(pesRes.data)
+      } else {
+        console.warn("⚠️ Nessuna operazione trovata.");
+      }
+
+    } catch (err) {
+      console.error("Errore nel fetch delle operazioni o pesatura:", err);
+    }
+  }
+
 
   const fetchOperations = async (portfolio_uid: string, cancelled?: boolean) => {
     try {
-
-
       // 🔹 Recupero report di pesatura
       const pesRes = await get_portfolioWeighing(portfolio_uid);
 
@@ -185,6 +198,7 @@ const Portfolio: React.FC = () => {
   };
 
 
+
   // ===== FETCH BASE =====
   useEffect(() => {
     if (!portfolio_uid) return;
@@ -194,11 +208,10 @@ const Portfolio: React.FC = () => {
     const loadAll = async () => {
       try {
         setLoadingMode(true);
-
         await fetchPortfolioInfo(portfolio_uid, cancelled);
         await fetchPrices(portfolio_uid, cancelled);
         await fetchOperations(portfolio_uid, cancelled);
-
+        await fetchProfit(portfolio_uid, cancelled);
       } catch (err) {
         console.error("Errore caricamento dati portfolio:", err);
       } finally {
@@ -211,7 +224,7 @@ const Portfolio: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [portfolio_uid, dateLastOperation]);
+  }, [portfolio_uid]);
 
   // ===== FETCH ALERT/REPORT: usa direttamente managed_uid dal PORTFOLIO =====
   useEffect(() => {
@@ -231,10 +244,11 @@ const Portfolio: React.FC = () => {
 
         if (cancelled) return;
 
-        setAlertsInfo(alerts.response.success ? alerts.data ?? [] : []);
+        setAlertsInfo(alerts.response.success && alerts.response.data ? alerts.response.data.items : []);
         setValidReportInfo(reports.response.success ? reports.data : undefined);
       } catch (e) {
         if (!cancelled) {
+          console.log("entro")
           setAlertsInfo([]);
           setValidReportInfo(undefined);
         }
@@ -294,7 +308,7 @@ const Portfolio: React.FC = () => {
 
 
   if (loadingMode || !portfolioInfo) {
-    return <General_Loading theme="pageLoading" title="Dashboard Portafoglio" />;
+    return <General_Loading theme="pageLoading" title="" />;
   }
 
   const totalCurrentValue = portfolioInfo?.cash_position + totalAssetValue;
@@ -305,14 +319,14 @@ const Portfolio: React.FC = () => {
     <>
       <MDBContainer>
         <MDBRow>
-          <MDBCol className="mb-3" md="12">
+          <MDBCol className="mb-3 p-0" md="12">
             <MDBRow className="d-flex justify-content-center align-items-center">
               {/* recap portolio */}
               <MDBCol xs="12" className="mb-4">
-                <MDBCard className="shadow-sm">
+                <MDBCard className="shadow-sm" style={{ backgroundColor: "rgba(33, 56, 74, 1)", color: "white" }}>
                   <MDBCardHeader
                     className="py-3 px-4 border-bottom"
-                    style={{ backgroundColor: "rgb(38, 53, 80)", color: "white" }}
+
                   >
                     <MDBRow className="align-items-center gy-2 gx-3">
                       {/* Titolo e badge */}
@@ -321,91 +335,105 @@ const Portfolio: React.FC = () => {
                           tag="h5"
                           className="mb-0 d-flex align-items-center flex-wrap text-truncate"
                         >
-                          <MDBIcon fas icon="chart-line" className="me-2" />
-
-                          <span className='me-2'>
+                          <span className='me-2 fs-6 mb-2' style={{ background: "rgba(69, 85, 108, 1)", borderRadius: "8px", padding:"3px 6px", fontWeight:"400"}}>
                             {portfolioInfo.title}
                           </span>
 
                           {(portfolioInfo.type === "managed" && managedInfo?.title) && (
-                            <MDBBadge color="light" className="text-dark  mt-2 mt-md-0" style={{ maxWidth: "100%" }}>
+                            <span className='me-2  fs-6' style={{ background: "rgba(69, 85, 108, 1)", borderRadius: "8px", padding:"3px 6px", fontWeight:"400"}}>
                               Gestito | {managedInfo.title}
-                            </MDBBadge>
+                            </span>
                           )}
                         </MDBCardTitle>
                       </MDBCol>
 
-                      {/* Valore attuale */}
-                      <MDBCol
-                        xs="12"
-                        md="4"
-                        className="text-md-end text-start"
-                        style={{ color: "white" }}
-                      >
-                        <p className="mb-1 small">Valore Attuale (Cassa + Asset)</p>
-                        <p className="mb-0 h6 fw-bold">
-                          {fmtEUR(portfolioInfo.cash_position + totalAssetValue)}
-                        </p>
-                      </MDBCol>
+
                     </MDBRow>
                   </MDBCardHeader>
 
-                  <MDBCardBody className="bg-white">
-                    <MDBCol xs="12" className='d-flex align-items-center justify-content-between small'>
-                      <p className="m-0">
-                        Addebito Mensile
-                        <b className="ms-2">{fmtEUR(toNumber(portfolioInfo.automatic_savings))}</b>
-                      </p>
-                      <p className="m-0">Ogni 15 del mese</p>
-                    </MDBCol>
+                  <MDBCardBody className="">
                     <MDBRow className="gy-3 gx-2">
-                      {/* Target e progresso */}
-                      <MDBCol xs="12">
-                        <MDBRow className="align-items-center justify-content-between">
-                          <MDBCol xs="12" md="6" className="m-0">
-                            <span className="">Obiettivo: </span>
-                            <span className="fw-bold">{portfolioInfo.target}€</span>
-                            <span className="text-muted ms-2">in {portfolioInfo.time_horizon_years} anni</span>
-                          </MDBCol>
-                          <MDBCol xs="12" md="6" className="text-md-end text-start mt-2 mt-md-0">
-                            <span className="text-muted me-1">Progresso</span>
-                            <span className="fw-bold">{progress.toFixed(1)}%</span>
-                          </MDBCol>
-                        </MDBRow>
-                      </MDBCol>
+                      {/* Valore attuale */}
+                      <MDBCol
+                        xs="12"
+                        md="12"
+                        className="text-start"
+                        style={{ color: "white" }}
+                      >
 
-                      {/* Barra di progresso */}
-                      <MDBCol xs="12">
-                        <MDBProgress className="mb-3 rounded" style={{ height: "10px" }}>
-                          <MDBProgressBar
-                            width={progress}
-                            bgColor="info"
-                            valuemin={0}
-                            valuemax={100}
-                            animated
-                          />
-                        </MDBProgress>
-                      </MDBCol>
-
-                      {/* Dati finanziari */}
-                      <MDBCol xs="12" md="6">
-                        <p className="mb-0">
-                          <span className="text-muted">Liquidità: </span>
-                          <span className="fw-bold">
-                            {fmtEUR(portfolioInfo.cash_position)}
-                          </span>
+                        <span className="mb-1 small">Valore Attuale (Cassa + Asset)</span>
+                        <p className="mb-0 h6 fw-bold fs-5">
+                          {fmtEUR(portfolioInfo.cash_position + totalAssetValue)}
                         </p>
                       </MDBCol>
-                      <MDBCol xs="12" md="6" className="text-md-end text-start">
+                      <MDBCol xs="12" md="12" className="text-start mb-3">
                         <p className="mb-0">
-                          <span className="text-muted">
-                            Valore asset (prezzi attuali):{" "}
-                          </span>
-                          <span className="fw-bold">{fmtEUR(totalAssetValue)}</span>
+                          <span className="">
+                            Guadagni o Perdite Realizzate:
+                          </span><br />
+                          <span className="fw-bold fs-5"> {profit.reduce((sum, item) => sum + item.earning_cash, 0)}</span>
                         </p>
                       </MDBCol>
                     </MDBRow>
+                    {/* cards nuove */}
+                    <MDBRow>
+                      <MDBCol className='mb-3' xs="12" md="4">
+                        <MDBCard className="shadow-sm p-3" style={{ backgroundColor: "rgb(42,71,93)", color: "white", minHeight: "110px" }}>
+                          <p className="m-0">
+                            <MDBIcon fas icon="chart-line" className="me-2" />
+                            Addebito Mensile
+                          </p>
+                          <p className="m-0"><b className="">{fmtEUR(toNumber(portfolioInfo.automatic_savings))}</b> Ogni 15 del mese</p>
+                          <MDBCol xs="12" md="12" className="m-0">
+                            <span className="">Obiettivo: </span>
+                            <span className="fw-bold">{portfolioInfo.target}€ in {portfolioInfo.time_horizon_years} anni</span>
+                          </MDBCol>
+                        </MDBCard>
+                      </MDBCol>
 
+                      <MDBCol className='mb-3' xs="12" md="4">
+                        <MDBCard className="shadow-sm p-3" style={{ backgroundColor: "rgb(42,71,93)", color: "white", minHeight: "110px" }}>
+                          <MDBCol xs="12" md="12" className="text-start">
+                            <MDBIcon far icon="calendar" className="me-2" />
+                            <span className="">Progresso</span> <br />
+                            <span className="fw-bold">{progress.toFixed(1)}%</span>
+                          </MDBCol>
+                          <MDBProgress className="mb-3 rounded" style={{ height: "10px" }}>
+                            <MDBProgressBar
+                              width={progress}
+                              bgColor="info"
+                              valuemin={0}
+                              valuemax={100}
+                              animated
+                            />
+                          </MDBProgress>
+                        </MDBCard>
+                      </MDBCol>
+
+                      <MDBCol className='mb-3' xs="12" md="4">
+                        <MDBCard className="shadow-sm p-3" style={{ backgroundColor: "rgb(42,71,93)", color: "white", minHeight: "110px" }}>
+                          <p className="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 17 17" fill="none" className='me-2'>
+                              <circle cx="8.5" cy="8.5" r="2" stroke="#ECEFF3" />
+                              <circle cx="8.5" cy="8.5" r="5" stroke="#ECEFF3" />
+                              <circle cx="8.5" cy="8.5" r="8" stroke="#ECEFF3" />
+                            </svg>
+                            <span className="">Liquidità</span><br />
+                            <span className="fw-bold">
+                              {fmtEUR(portfolioInfo.cash_position)}
+                            </span>
+                          </p>
+                          <MDBCol xs="12" md="12" className="text-start">
+                            <p className="mb-0">
+                              <span className="">
+                                Valore asset prezzi attuali:{" "}
+                              </span>
+                              <span className="fw-bold">{fmtEUR(totalAssetValue)}</span>
+                            </p>
+                          </MDBCol>
+                        </MDBCard>
+                      </MDBCol>
+                    </MDBRow>
                   </MDBCardBody>
                 </MDBCard>
               </MDBCol>
@@ -417,15 +445,17 @@ const Portfolio: React.FC = () => {
                     <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
                       <MDBCardTitle tag="h5" className="mb-2 mb-md-0 d-flex align-items-center">
                         <MDBIcon fas icon="wallet" className="me-2" />
-                        Composizione Portafoglio
+                        Composizione
                       </MDBCardTitle>
                     </div>
                   </MDBCardHeader>
-                  <MDBCardBody className="bg-white d-flex flex-wrap">
+                  <MDBCardBody className="bg-white d-flex flex-wrap px-2">
                     <PortfolioComposition
                       portfolio={portfolioInfo}
                       managedInfo={managedInfo}
                       assetPrices={prices}
+                      realOps={realOpsRes}
+                      pesature={validReportWeighing}
                       onReloadPrices={() => fetchPrices(portfolio_uid!)}
                       onReloadPortfolio={() => fetchPortfolioInfo(portfolio_uid!)}
                       onReloadOperations={() => fetchOperations(portfolio_uid!)}
@@ -436,49 +466,64 @@ const Portfolio: React.FC = () => {
 
               {/* pesatura portafolio */}
               {portfolioInfo.type === "managed" &&
-                <MDBCol md="12" className="mb-3" >
-                  <MDBCard className="">
-                    <MDBCardHeader className="py-3 px-4 border-bottom" style={{ backgroundColor: "rgb(38, 53, 80)", color: "white" }}>
-                      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
-                        <MDBCardTitle tag="h5" className="mb-2 mb-md-0 w-100">
-                          <div className='d-flex align-items-center justify-content-between'>
-                            <div>
-                              <MDBIcon fas icon="balance-scale" className="me-2" />
-                              Pesatura Portafoglio
+                <>
+                  <MDBCol md="12" className="mb-3" >
+                    <MDBCard className="">
+                      <MDBCardHeader className="py-3 px-4 border-bottom" style={{ backgroundColor: "rgb(38, 53, 80)", color: "white" }}>
+                        <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+                          <MDBCardTitle tag="h5" className="mb-2 mb-md-0 w-100">
+                            <div className='d-flex align-items-center justify-content-between'>
+                              <div>
+                                <MDBIcon fas icon="balance-scale" className="me-2" />
+                                Pesatura
 
+                              </div>
+                              <MDBIcon fas icon="question-circle" style={{ cursor: "help" }}
+                                onClick={() => {
+                                  if (validReportInfo) {
+                                    setHtmlPreview(validReportInfo.html_body);
+                                    setModalTitle(validReportInfo.title || 'Anteprima');
+                                    setOpenPreviewModal(true);
+                                  } else {
+                                    setHtmlPreview("");
+                                    setModalTitle("Nessun report disponibile");
+                                    setOpenPreviewModal(true);
+                                  }
+                                }}
+                              />
                             </div>
-                            <MDBIcon fas icon="question-circle" style={{ cursor: "help" }}
-                              onClick={() => {
-                                if (validReportInfo) {
-                                  setHtmlPreview(validReportInfo.html_body);
-                                  setModalTitle(validReportInfo.title || 'Anteprima');
-                                  setOpenPreviewModal(true);
-                                } else {
-                                  setHtmlPreview("");
-                                  setModalTitle("Nessun report disponibile");
-                                  setOpenPreviewModal(true);
-                                }
-                              }}
-                            />
-                          </div>
-                        </MDBCardTitle>
-                      </div>
-                    </MDBCardHeader>
-                    <MDBCardBody className="bg-white"  >
-                      <AssetAllocation
-                        portfolio={portfolioInfo}
-                        managedInfo={managedInfo}
-                        onSuccess={() => {
-                          fetchPrices(portfolio_uid!);
-                          fetchPortfolioInfo(portfolio_uid!);
-                          fetchOperations(portfolio_uid!);
-                        }}
-                        pesature={validReportWeighing}
-                        realOps={realOpsRes}
-                      />
-                    </MDBCardBody>
-                  </MDBCard>
-                </MDBCol>
+                          </MDBCardTitle>
+                        </div>
+                      </MDBCardHeader>
+                      <MDBCardBody className="bg-white"  >
+                        <AssetAllocation
+                          portfolio={portfolioInfo}
+                          managedInfo={managedInfo}
+                          pesature={validReportWeighing}
+                          realOps={realOpsRes}
+                          onSuccess={() => {
+                            fetchPrices(portfolio_uid!);
+                            fetchPortfolioInfo(portfolio_uid!);
+                            fetchOperations(portfolio_uid!);
+                          }}
+                        />
+                      </MDBCardBody>
+                    </MDBCard>
+
+                  </MDBCol>
+                  <MDBCol md="12" className="mb-3" >
+                    {/* {realOpsRes && */}
+                    <SuggestedAlertsList
+                      validReportWeighing={validReportWeighing}
+                      alertsInfo={alertsInfo}
+                      realOpsRes={realOpsRes}
+                      setSelectedOp={setSelectedOp}
+                      setOpenExecuteModal={setOpenExecuteModal}
+                      setOpenPreviewModal={setOpenPreviewModal}
+                    />
+                    {/* } */}
+                  </MDBCol>
+                </>
               }
 
               {/* visualizzazione operazioni custom */}
@@ -491,17 +536,6 @@ const Portfolio: React.FC = () => {
               }
 
 
-              {/* {realOpsRes && */}
-              <SuggestedAlertsList
-                alertsInfo={validReportWeighing}
-                realOpsRes= {realOpsRes}
-                setSelectedOp={setSelectedOp}
-                setOpenExecuteModal={setOpenExecuteModal}
-                setOpenPreviewModal={setOpenPreviewModal}
-              />
-              {/* } */}
-
-
               {/* Switcher contenuti */}
               <MDBCol md="12">
                 <MDBCard>
@@ -509,7 +543,7 @@ const Portfolio: React.FC = () => {
                     <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
                       <MDBCardTitle tag="h5" className="mb-2 mb-md-0 d-flex align-items-center">
                         <MDBIcon fas icon="bars" />
-                        <span className='mx-2'>Gestione Portafoglio</span>
+                        <span className='mx-2'>Gestione</span>
                       </MDBCardTitle>
                     </div>
                   </MDBCardHeader>
@@ -553,7 +587,7 @@ const Portfolio: React.FC = () => {
           </MDBCol>
         </MDBRow>
 
-        {/* MODALE ESEGUI OPERAZIONE */}
+        {/* MODALE ESEGUI OPERAZIONE // OPERAZIONI CONSIGLIATE */}
         <MDBModal open={openExecuteModal} setOpen={setOpenExecuteModal} tabIndex={-1}>
           <MDBModalDialog>
             <MDBModalContent>
@@ -606,7 +640,11 @@ const Portfolio: React.FC = () => {
                     return { response: { success: true, message: 'OK', data: formData }, data: formData };
                   }}
                   createBtnProps={{ label: 'Conferma operazione' }}
-                  onSuccess={async () => {
+                  onSuccess={() => {
+                    console.log("chiamo la fica")
+                    fetchPrices(portfolio_uid!);
+                    fetchPortfolioInfo(portfolio_uid!);
+                    fetchOperations(portfolio_uid!);
                     setOpenExecuteModal(false);
                   }}
                 />

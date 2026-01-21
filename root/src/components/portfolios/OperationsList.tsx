@@ -76,7 +76,7 @@ const OperationsHistory: React.FC<OperationsHistoryProps> = ({ portfolio_uid }) 
   const [filters, setFilters] = useState<OperationsListFilters>({
     portfolio_uid,
     page: 1,
-    per_page: 25,
+    per_page: 10,
     operation: undefined, // 'buy' | 'sell' | undefined
     symbol: "",
     from: undefined,
@@ -239,7 +239,7 @@ const OperationsHistory: React.FC<OperationsHistoryProps> = ({ portfolio_uid }) 
         : undefined,
     [selected]
   );
-  
+
 
   // ── UI ──────────────────────────────────────────────────────────────────────
   return (
@@ -253,7 +253,6 @@ const OperationsHistory: React.FC<OperationsHistoryProps> = ({ portfolio_uid }) 
         {/* 🔎 Filtro automatico */}
         <MDBRow className="align-items-center bg-white justify-content-between flex-wrap g-2">
           <MDBCol md="3" className="mb-2">
-
             <MDBInputGroup>
               <MDBInput
                 type="text"
@@ -404,28 +403,36 @@ const OperationsHistory: React.FC<OperationsHistoryProps> = ({ portfolio_uid }) 
         </MDBTable>
 
         {/* Footer pagination */}
-        <div className="d-flex justify-content-between align-items-center p-3 flex-wrap">
-          <MDBDropdown>
-            <MDBDropdownToggle color="secondary" className="shadow-0">
-              Per pagina {filters.per_page}
-            </MDBDropdownToggle>
-            <MDBDropdownMenu>
-              {[10, 25, 50, 100].map((n) => (
-                <MDBDropdownItem link key={n} onClick={() => setRowsForPage(n)}>
-                  {n}
-                </MDBDropdownItem>
-              ))}
-            </MDBDropdownMenu>
-          </MDBDropdown>
+        <MDBRow className="align-items-center mt-4">
+          <MDBCol col="4" sm="4" md="2">
+            <MDBDropdown>
+              <MDBDropdownToggle color="secondary" className="shadow-0 w-100 w-md-auto">
+                Per pagina
+              </MDBDropdownToggle>
+              <MDBDropdownMenu>
+                {[10, 25, 50, 100].map((n) => (
+                  <MDBDropdownItem link key={n} onClick={() => setRowsForPage(n)}>
+                    {n}
+                  </MDBDropdownItem>
+                ))}
+              </MDBDropdownMenu>
+            </MDBDropdown>
+          </MDBCol>
 
-          <div className="text-muted small">Elementi: <b>{itemsNum}</b></div>
+          <MDBCol col="4" sm="4" md="8" className=" my-3 text-center text-md-center">
+            <div className="text-muted small">
+              Elementi: <b>{itemsNum}</b>
+            </div>
+          </MDBCol>
 
-          <Pagination
-            setCurrentPage={setCurrentPage}
-            currentPage={filters.page ?? 1}
-            totalPages={pagesNum}
-          />
-        </div>
+          <MDBCol col="4" sm="4" md="2" className="d-flex justify-content-md-end justify-content-center">
+            <Pagination
+              setCurrentPage={setCurrentPage}
+              currentPage={filters.page ?? 1}
+              totalPages={pagesNum}
+            />
+          </MDBCol>
+        </MDBRow>
 
       </div>
 

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "localnetwork": "vite --host"
   },
   "dependencies": {
     "@ckeditor/ckeditor5-build-classic": "^39.0.2",

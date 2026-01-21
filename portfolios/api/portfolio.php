@@ -127,6 +127,29 @@ try {
                     ));
                     break;
 
+                case 'assetsEarnings':
+                    if (empty($requestData['portfolio_uid'])) {
+                        http_response_code(400);
+                        echo json_encode($reqResp->toArray(
+                            success: false,
+                            message: $trad->lang('portfolio.400.missingRequiredParameters'),
+                            error: 'Missing parameter: portfolio_uid'
+                        ));
+                        break;
+                    }
+
+                    $obj = new portfolioObj($authManager, $permsManager, $requestData['portfolio_uid']);
+                    $res = $obj->get_assetsEarnings();
+
+                    http_response_code(200);
+                    echo json_encode($reqResp->toArray(
+                        success: $res['success'] ?? false,
+                        message: $trad->lang($res['message'] ?? 'portfolio.assetPrices.200.success'),
+                        error: $res['error'] ?? null,
+                        data: $res['data'] ?? null,
+                    ));
+                    break;
+
                 case 'managed_list':
                     if (!class_exists('managedPortObjList')) {
                         http_response_code(501);

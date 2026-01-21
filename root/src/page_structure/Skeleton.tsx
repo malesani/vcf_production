@@ -17,11 +17,12 @@ interface SkeletonProps {
   def_appState?: string;
   noNavbar?: boolean;
   noTopBar?: boolean;
+  noSideNav?: boolean;
 }
 
-const Skeleton: React.FC<SkeletonProps> = ({ children, def_appState, noNavbar, noTopBar }) => {
+const Skeleton: React.FC<SkeletonProps> = ({ children, def_appState, noNavbar, noTopBar, noSideNav }) => {
   const isMobile = useIsMobile(768);
-  const {logo_small, logo_large} = useLogos();
+  const { logo_small, logo_large } = useLogos();
   const logo = (isMobile ? logo_small : logo_large);
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
 
@@ -66,14 +67,15 @@ const Skeleton: React.FC<SkeletonProps> = ({ children, def_appState, noNavbar, n
       {!noNavbar && <NavBar logoImg={logo} appState={appState} setAppState={setAppState} drawerOpen={drawerOpen} setDrawerOpen={setDrawerOpen} />}
 
       <div style={{ minHeight: "100vh", position: "relative" }}>
-        {container && (
+        {!noSideNav && container && (
           <SideNav
             contentRef={container}
             appState={appState}
             setAppState={setAppState}
             mobileHeader={onClose => <MobileNavLinks onClose={onClose} />}
             open={sidebarOpen}
-            onOpenChange={setSidebarOpen} />
+            onOpenChange={setSidebarOpen}
+          />
         )}
         <div
           // il ref vero e proprio

@@ -6,12 +6,24 @@ import Skeleton from '../page_structure/Skeleton';
 import ProtectedRoute from '../auth_module/ProtectedRoute';
 import UserProfile from '../pages/UserProfile';
 import ChooseCompany from '../pages/ChooseCompany';
+import ResetPassword from '../pages/ResetPassword';
+import Profilation from '../pages/Profilation';
 
 const publicRoutes = [
   // PUBLIC PAGES (no auth)
   { path: '/login', element: <LoginForm /> },
   { path: '/signup', element: <SignUp /> },
+  { path: '/reset_password', element: <ResetPassword /> },
 
+    // QUIZ (public path, ma con logica interna di redirect)
+  {
+    path: '/quiz',
+    element: (
+      <Skeleton noNavbar noSideNav>
+        <Profilation />
+      </Skeleton>
+    )
+  },
   // NEW PAGE
   {
     path: '/choose_company',

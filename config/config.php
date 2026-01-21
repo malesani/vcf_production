@@ -20,6 +20,18 @@ define('TWELVE_DATA_APIKEY', $_ENV['TWELVE_DATA_APIKEY'] ?? '');
 
 define('CLIENT_APIKEY_prices_worker', $_ENV['CLIENT_APIKEY_prices_worker'] ?? '');
 
+define('FRONTEND_ORIGIN', $_ENV['FRONTEND_ORIGIN'] ?? '');
+
+define('SMTP_HOST', $_ENV['SMTP_HOST'] ?? '');
+define('SMTP_PORT', (int)($_ENV['SMTP_PORT'] ?? 587));
+define('SMTP_USER', $_ENV['SMTP_USER'] ?? '');
+define('SMTP_PSWD', $_ENV['SMTP_PSWD'] ?? '');
+define('SMTP_CRYPTO', $_ENV['SMTP_CRYPTO'] ?? 'tls'); // tls|ssl|none
+
+define('SMTP_FROM', $_ENV['SMTP_FROM'] ?? SMTP_USER);
+define('SMTP_FROM_NAME', $_ENV['SMTP_FROM_NAME'] ?? '');
+define('SMTP_DEBUG', (int)($_ENV['SMTP_DEBUG'] ?? 0));
+
 abstract class DbData
 {
     const db_server   = DB_SERVER;
@@ -51,3 +63,21 @@ abstract class authServices
     const secretKeyAuth_pricesWorker = CLIENT_APIKEY_prices_worker;
 }
 
+abstract class Auth_Frontend
+{
+    const Origin = FRONTEND_ORIGIN;
+}
+
+abstract class SmtpConfig
+{
+    const HOST  = SMTP_HOST;
+    const PORT  = SMTP_PORT;
+    const USER  = SMTP_USER;
+    const PSWD  = SMTP_PSWD;
+    const CRYPTO = SMTP_CRYPTO;
+
+    const FROM = SMTP_FROM;
+    const FROM_NAME = SMTP_FROM_NAME;
+
+    const DEBUG = SMTP_DEBUG;
+}

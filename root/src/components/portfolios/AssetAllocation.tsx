@@ -15,7 +15,7 @@ interface Props {
     managedInfo?: PortManagedInfo;
     assetPrices?: Record<string, number | null>;
     operations?: OperationItem[];
-    onSuccess?: () => void;     
+    onSuccess?: () => void;
     pesature: SymbolWeighing[] | undefined;
     realOps: OperationItem[];
 }
@@ -23,7 +23,8 @@ interface Props {
 
 
 const AssetAllecation: React.FC<Props> = ({ portfolio, assetPrices, operations, onSuccess, pesature, realOps }) => {
-
+    console.log(pesature, "pesature")
+    console.log(realOps, "realOps")
     const { assets } = portfolio;
 
     //last operation
@@ -81,12 +82,12 @@ const AssetAllecation: React.FC<Props> = ({ portfolio, assetPrices, operations, 
             {pesature === undefined && (
                 <General_Loading theme="formLoading" text="Caricamento Portafogli" />
             )}
-            <MDBListGroup style={{ minWidth: "22rem" }} light small>
+            <MDBListGroup light small>
                 {(pesature ?? []).map((p) => {
                     //hago match di operation valida con assetsweight
                     const operationFind = realOps.find((op) => op.symbol === p.symbol);
                     console.log(operationFind, "operationFind")
-                  
+
                     const percent = Math.round(p.percentage_now ?? 0);
                     const suggestedPct = Math.round(p.percentage_suggested ?? 0);
                     const qty = p.unitQuantity_now ?? 0;
@@ -105,19 +106,21 @@ const AssetAllecation: React.FC<Props> = ({ portfolio, assetPrices, operations, 
                     const beforeWidth = Math.min(safePercent, safeSuggested);
                     const afterWidth = Math.abs(safePercent - safeSuggested);
                     const beforeColor = "primary";
-                    const afterColor = safePercent < safeSuggested ? "success" : safePercent > safeSuggested  ? "danger" : "info";
+                    const afterColor = safePercent < safeSuggested ? "success" : safePercent > safeSuggested ? "danger" : "info";
 
                     return (
                         <MDBListGroupItem key={p.symbol}>
                             <div className="m-0">
-                                <div className="d-flex justify-content-between small mb-2">
+                                <div className="d-flex justify-content-between small mb-2 flex-wrap">
                                     <span className="fw-bold">{p.symbol}</span>
-                                    <div className="d-flex align-items-center">
-                                        <span className="text-muted">
-                                            Qta Attuale {qty}
+                                    <div className="d-flex align-items-center w-100 justify-content-between justify-content-md-end">
+                                        <span>
+                                            Attuale: <strong>{qty}</strong>
                                             <br />
                                         </span>
-                                        <span className="fw-bold">→ Qta Ideale {idealQty}</span>
+
+                                        <span className="ms-2">Consigliata: <strong>{idealQty}</strong></span>
+
                                         {qty !== idealQty && (
                                             <MDBBtn
                                                 color="warning"

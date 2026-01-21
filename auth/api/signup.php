@@ -61,7 +61,7 @@ try {
                 // Valida il token di invito
                 // --------------------------------------------------------
                 case 'validate_rInvitation':
-                    $requiredFields = [ 'token' ];
+                    $requiredFields = ['token'];
 
                     // verifica required
                     $missing = array_diff($requiredFields, array_keys($requestData));
@@ -70,30 +70,110 @@ try {
                         echo json_encode($authManager->responseArr([
                             'success' => false,
                             'message' => $trad->lang('signup.400.missingRequiredParameters'),
-                            'error'   => 'Missing: '. json_encode(array_values($missing))
+                            'error'   => 'Missing: ' . json_encode(array_values($missing))
                         ]));
                         break;
                     }
 
-                    $signupManager = new signupManager( $authManager );
+                    $signupManager = new signupManager($authManager);
                     $response = $signupManager->check_inviteRestrictedToken($requestData['token']);
 
                     if ($response['success']) {
                         http_response_code(200);
                         echo json_encode($authManager->responseArr([
-                            'success' => true, 
+                            'success' => true,
                             'message' => $trad->lang($response['message']),
                             'data' => $response['data']
                         ]));
                     } else {
                         http_response_code(400);
                         echo json_encode($authManager->responseArr([
-                            'success' => false, 
+                            'success' => false,
                             'message' => $trad->lang($response['message']),
                             'error' => $response['error'] ?: "Unknown error"
                         ]));
                     }
                     break;
+
+                // --------------------------------------------------------
+                // Signup: crea utente + token attivazione + invia mail
+                // --------------------------------------------------------
+                case 'signup':
+                    $requiredFields = ['email', 'first_name', 'last_name', 'password'];
+
+                    // verifica required
+                    $missing = array_diff($requiredFields, array_keys($requestData));
+                    if (!empty($missing)) {
+                        http_response_code(400);
+                        echo json_encode($authManager->responseArr([
+                            'success' => false,
+                            'message' => $trad->lang('signup.400.missingRequiredParameters'),
+                            'error'   => 'Missing: ' . json_encode(array_values($missing))
+                        ]));
+                        break;
+                    }
+
+                    $signupManager = new signupManager($authManager);
+
+                    // NB: la funzione gestisce già validazioni (email/password ecc.)
+                    $response = $signupManager->signup_createUser_createActivationToken_sendMail($requestData);
+
+                    if ($response['success']) {
+                        http_response_code(200);
+                        echo json_encode($authManager->responseArr([
+                            'success' => true,
+                            'message' => $trad->lang($response['message']),
+                            'data'    => $response['data'] ?? null
+                        ]));
+                    } else {
+                        http_response_code(400);
+                        echo json_encode($authManager->responseArr([
+                            'success' => false,
+                            'message' => $trad->lang($response['message']),
+                            'error'   => $response['error'] ?: "Unknown error"
+                        ]));
+                    }
+                    break;
+
+
+                // --------------------------------------------------------
+                // Attiva account (con token ricevuto via email)
+                // --------------------------------------------------------
+                case 'activate_account':
+                    $requiredFields = ['token'];
+
+                    // verifica required
+                    $missing = array_diff($requiredFields, array_keys($requestData));
+                    if (!empty($missing)) {
+                        http_response_code(400);
+                        echo json_encode($authManager->responseArr([
+                            'success' => false,
+                            'message' => $trad->lang('signup.400.missingRequiredParameters'),
+                            'error'   => 'Missing: ' . json_encode(array_values($missing))
+                        ]));
+                        break;
+                    }
+
+                    $signupManager = new signupManager($authManager);
+                    $response = $signupManager->activate_account((string)$requestData['token']);
+
+                    if ($response['success']) {
+                        http_response_code(200);
+                        echo json_encode($authManager->responseArr([
+                            'success' => true,
+                            'message' => $trad->lang($response['message']),
+                            'data'    => $response['data'] ?? null
+                        ]));
+                    } else {
+                        http_response_code(400);
+                        echo json_encode($authManager->responseArr([
+                            'success' => false,
+                            'message' => $trad->lang($response['message']),
+                            'error'   => $response['error'] ?: "Unknown error"
+                        ]));
+                    }
+                    break;
+
 
                 default:
                     $defaultOption = true;
@@ -115,10 +195,9 @@ try {
         echo json_encode($authManager->responseArr([
             'success' => false,
             'message' => $trad->lang('signup.400.invalidOption'),
-            'error'   => 'Invalid option: '.$method.' / "'.$requestData['opt'].'"'
+            'error'   => 'Invalid option: ' . $method . ' / "' . $requestData['opt'] . '"'
         ]));
     }
-
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode($authManager->responseArr([
@@ -129,4 +208,3 @@ try {
 }
 
 ob_end_flush();
-?>

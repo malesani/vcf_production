@@ -13,7 +13,7 @@ export interface InfoChartProps {
     tempo_investimento: number;
     contributo_mensile: number;
     investimento_iniziale: number;
-    managedPortfoliosInfo: PortManagedInfo[];
+    managedPortfoliosInfo?: PortManagedInfo[];
 }
 
 
@@ -22,7 +22,7 @@ export const NivoPie: React.FC<InfoChartProps> = ({
     tempo_investimento: tempoInvestimentoProp,
     contributo_mensile: contributoMensileProp,
     investimento_iniziale: investimentoInizialeProp,
-    managedPortfoliosInfo: managedPortfoliosInfo }) => {
+    managedPortfoliosInfo: managedPortfoliosInfo = [] }) => {
 
 
     //cons mutabili per manipolare il rendirizzato della pagina 

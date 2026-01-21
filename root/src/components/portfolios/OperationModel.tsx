@@ -33,7 +33,8 @@ const OperationModel: React.FC<OperationsModelProps> = ({ portfolio_uid, editOpe
             type: "selectbox",
             options: [{ text: "Vendi", value: "sell" }, { text: "Compra", value: "buy" },],
             customElementKey: "dual_switch",
-            readOnly: (() => {return true})
+            readOnly: (() => {return true}),
+            
 
         },
         {
@@ -70,7 +71,8 @@ const OperationModel: React.FC<OperationsModelProps> = ({ portfolio_uid, editOpe
                                         <div className="d-flex justify-content-between">
                                             <div>
                                                 <strong>{selectedOp.symbol}</strong> —{' '}<br></br>
-                                                Qta possedute: <strong>{selectedOp.unitQuantity}</strong> ·
+                                                {selectedOp.unitaryPrice_lastOp === 0 ? "Qta da comprare:" : "Qta possedute:"} <strong>{selectedOp.unitQuantity}</strong> ·
+                                                
                                             </div>
                                             <div>
 

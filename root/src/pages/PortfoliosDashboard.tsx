@@ -19,61 +19,30 @@ import {
     MDBDropdownItem,
     MDBProgress,
     MDBProgressBar
-} from 'mdb-react-ui-kit'
+} from 'mdb-react-ui-kit';
 
-import { PortfolioInfo, get_portfoliosList, get_portfoliosListPaginated } from '../api_module/portfolio/PortfolioData';
-
+import { PortfolioInfo, get_portfoliosListPaginated } from '../api_module/portfolio/PortfolioData';
 import { getMapping } from '../api_module_v1/MappingRequest';
-
 import { useNavigate } from 'react-router-dom';
 
 import General_Loading from "../app_components/General_Loading";
-
 import Pagination from "../app_components/TableData/components/Pagination";
+import { TableFilters } from "../app_components/TableData/interfaces";
 
-import { TableFilters } from "../app_components/TableData/interfaces"
 //data temporanea
 const data = [
-    {
-        "mese": "Maggio",
-        "Percentuale": -0.18,
-
-    },
-    {
-        "mese": "Giugno",
-        "Percentuale": 1.57,
-
-    },
-    {
-        "mese": "Luglio",
-        "Percentuale": 0.59,
-
-    },
-    {
-        "mese": "Agosto",
-        "Percentuale": 0.46,
-
-    },
-    {
-        "mese": "Settembre",
-        "Percentuale": 0.9,
-    }
+    { mese: "Maggio", Percentuale: -0.18 },
+    { mese: "Giugno", Percentuale: 1.57 },
+    { mese: "Luglio", Percentuale: 0.59 },
+    { mese: "Agosto", Percentuale: 0.46 },
+    { mese: "Settembre", Percentuale: 0.9 }
 ];
-
-
-const managedName = {
-    managed1: "Portafoglio conservativo",
-    managed2: "Crescita Bilanciata",
-};
-
 
 const PortfoliosDashboard: React.FC = () => {
     const navigate = useNavigate();
 
     const [managedDataPortfolios, setManagedDataPortfolios] = useState<PortfolioInfo[]>([]);
-
     const [showDataPortfolios, setShowDataPortfolios] = useState<PortfolioInfo[]>([]);
-
     const [statusMap, setStatusMap] = useState<Record<string, string>>({});
 
     const managedName: Record<string, string> = {
@@ -86,13 +55,12 @@ const PortfoliosDashboard: React.FC = () => {
         page: 1,
         per_page: 5
     });
+
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [itemsNum, setItemsNum] = useState<number>(0);
     const [pagesNum, setPagesNum] = useState<number>(1);
 
-
-    //filter function data
     function filterData(event: React.ChangeEvent<HTMLInputElement>) {
         const value = event.target.value.toLowerCase();
 
@@ -102,15 +70,11 @@ const PortfoliosDashboard: React.FC = () => {
             );
             setShowDataPortfolios(filtered);
         } else {
-            // si está vacío, muestra todo
             setShowDataPortfolios(managedDataPortfolios);
         }
     }
 
-
     useEffect(() => {
-
-        // traduzzioni dinamiche con utils map
         getMapping('portfolio', 'category')
             .then(res => {
                 const raw = res.data?.map || {};
@@ -120,59 +84,15 @@ const PortfoliosDashboard: React.FC = () => {
                 setStatusMap(norm);
             })
             .catch(err => console.error('Errore mappa stato procedura:', err));
-
-
-        const loadData = async () => {
-            let mounted = true;
-            try {
-                const response = await get_portfoliosListPaginated(filters);
-                console.log(response)
-                if (!mounted) return;
-                if (response.success && data) {
-                    setItemsNum(response.data!.meta.items_num);
-                    setPagesNum(response.data!.meta.pages_num);
-                } else {
-                    setError(response.message || "Errore nel recupero operazioni");
-                }
-
-                if (response.success && response.data) {
-                    const list = response.data.rows ?? []; // <-- prendi l’array giusto
-                    console.log(list)
-                    setShowDataPortfolios(list);
-                    setManagedDataPortfolios(list);
-                } else {
-                    setShowDataPortfolios([]);
-                    setManagedDataPortfolios([]);
-                }
-            } catch (e: any) {
-                if (mounted) setError(e?.message || "Errore di rete");
-            } finally {
-                if (mounted) setLoading(false);
-            }
-        };
-
-        loadData();
     }, []);
+
     useEffect(() => {
-
-        // traduzzioni dinamiche con utils map
-        getMapping('portfolio', 'category')
-            .then(res => {
-                const raw = res.data?.map || {};
-                const norm: Record<string, string> = Object.fromEntries(
-                    Object.entries(raw).map(([k, v]) => [String(k), String(v as any)])
-                );
-                setStatusMap(norm);
-            })
-            .catch(err => console.error('Errore mappa stato procedura:', err));
-
-
         const loadData = async () => {
             let mounted = true;
             try {
                 const response = await get_portfoliosListPaginated(filters);
-                console.log(response)
                 if (!mounted) return;
+
                 if (response.success && data) {
                     setItemsNum(response.data!.meta.items_num);
                     setPagesNum(response.data!.meta.pages_num);
@@ -181,8 +101,7 @@ const PortfoliosDashboard: React.FC = () => {
                 }
 
                 if (response.success && response.data) {
-                    const list = response.data.rows ?? []; // <-- prendi l’array giusto
-                    console.log(list)
+                    const list = response.data.rows ?? [];
                     setShowDataPortfolios(list);
                     setManagedDataPortfolios(list);
                 } else {
@@ -199,190 +118,176 @@ const PortfoliosDashboard: React.FC = () => {
         loadData();
     }, [filters]);
 
-
     // ── Handlers filtri ─────────────────────────────────────────────────────────
     const setCurrentPage = (page: number) => setFilters((p) => ({ ...p, page }));
     const setRowsForPage = (per_page: number) => setFilters((p) => ({ ...p, per_page, page: 1 }));
-    const setTypePortfolio = (type: string) => setFilters((p) => ({ ...p, type, page: 1, }));
+    const setTypePortfolio = (type: string) => setFilters((p) => ({ ...p, type, page: 1 }));
 
+    const totalValue = (
+        showDataPortfolios.reduce(
+            (acc, child) => acc + (child.totals?.total_with_cash || 0),
+            0
+        )
+    ).toFixed(2);
 
     return (
-        <MDBContainer>
-            <MDBRow className='align-items-center'>
-                <MDBCol>
-                    <div className="py-2 mb-2">
+        <MDBContainer className="py-2">
+            {/* ======= HEADER TOP (responsive) ======= */}
+            <MDBRow className="align-items-stretch g-3">
+                <MDBCol xs="12" lg="8">
+                    <div className="py-2">
                         <div className="d-flex flex-row align-items-center">
-                            {/* <i className="fas fa-list-alt me-2"></i> */}
-                            <span className="fs-2 fw-bold text-dark">
+                            <span className="fs-4 fw-bold text-dark">
                                 Riassunto Generale dei miei Portafogli
                             </span>
                         </div>
                         <div className="d-flex">
-                            <span className="text-muted fs-5">
+                            <span className="text-muted fs-6">
                                 Scopri come avrebbe performato storicamente un portafoglio di investimenti
                             </span>
                         </div>
                     </div>
                 </MDBCol>
-                <MDBCol className="" md="6" xl="4">
-                    <MDBCard className="shadow-sm border-0 rounded-3 flex-row align-items-center" style={{ maxHeight: "", height: "150px" }}>
-                        <MDBCardBody>
-                            <div className="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <MDBCardTitle className="text-muted small mb-2">
+
+                <MDBCol xs="12" lg="4">
+                    <MDBCard
+                        className="shadow-sm border-0 rounded-3 h-100"
+                        style={{ background: "linear-gradient(135deg, rgba(15, 23, 43, 1), rgba(49, 65, 88, 1))" }}
+                    >
+                        <MDBCardBody className="d-flex align-items-center">
+                            <div className="w-100">
+                                <MDBCardTitle className="text-muted small mb-2">
+                                    <span className='me-3 text-light'>
                                         Valore Totale dei miei Portafogli
-                                    </MDBCardTitle>
-                                    <h3 className="fw-bold mb-1">
-                                        {
-                                            showDataPortfolios.reduce(
-                                                (acc, child) => acc + (child.totals?.total_with_cash || 0),
-                                                0
-                                            )
-                                        }
-                                    </h3>
-                                </div>
-                                {/* Icona a destra */}
-                                <div
-                                    className="d-flex align-items-center justify-content-center bg-light rounded-3"
-                                    style={{ width: "40px", height: "40px" }}
-                                >
-                                    <div
-                                        className="d-flex align-items-center justify-content-center rounded-3"
-                                        style={{
-                                            width: "40px",
-                                            height: "40px",
-                                            backgroundColor: "#f1f3f5" // 👈 gris claro de fondo
-                                        }}
-                                    >
-                                        <MDBIcon fas icon="money-bill-wave" />
-                                    </div>
-                                </div>
+                                    </span>
+                                    <MDBIcon fas icon="sync-alt" color='white' />
+                                </MDBCardTitle>
+                                <h3 className="fw-bold mb-0 text-light">{totalValue} €</h3>
                             </div>
                         </MDBCardBody>
                     </MDBCard>
                 </MDBCol>
             </MDBRow>
 
-            <MDBRow>
-                <MDBCol className='d-flex align-items-center justify-content-between' style={{ margin: "40px 0px 20px 0px" }}>
-                    <div className="py-2">
-                        <div className="d-flex flex-row align-items-center">
-                            {/* <i className="fas fa-list-alt me-2"></i> */}
-                            <h3 className="fw-bold text-dark m-0">
-                                I miei Portafogli
-                            </h3>
-                        </div>
-                    </div>
+            {/* ======= TOOLBAR (responsive, NO overflow) ======= */}
+            <MDBRow className="align-items-center g-2 mt-4">
+                {/* Title */}
+                <MDBCol xs="12" md="4">
+                    <h3 className="fw-bold text-dark m-0 fs-6">I miei Portafogli</h3>
+                </MDBCol>
 
-                    <div className="d-flex gap-2 align-items-center bg-light rounded-3">
-
-                        {/* Cerca */}
-                        <MDBInputGroup noWrap className="flex-grow-1" style={{ maxWidth: "220px" }}>
-                            <input onChange={filterData} className="form-control" placeholder="Cerca per nome..." type="text" />
-                            <MDBBtn style={{ backgroundColor: "rgb(38, 53, 80)" }}>
-                                <MDBIcon fas icon="search" />
-                            </MDBBtn>
+                {/* Controls */}
+                <MDBCol xs="12" md="8">
+                    <div className="d-flex flex-column flex-md-row justify-content-md-end gap-2">
+                        {/* Search: full width mobile */}
+                        <MDBInputGroup
+                            noWrap
+                            className="d-flex align-items-center border rounded-3 px-2 bg-white w-100 w-md-auto"
+                            style={{ maxWidth: 320 }}
+                        >
+                            <MDBIcon fas icon="search" />
+                            <input
+                                onChange={filterData}
+                                className="form-control"
+                                placeholder="Cerca per nome..."
+                                type="text"
+                                style={{ border: "none", boxShadow: "none" }}
+                            />
                         </MDBInputGroup>
 
-                        {/* Bottone Filtri */}
-                        <MDBDropdown>
-                            <MDBDropdownToggle color="light" className="d-flex align-items-center gap-2">
-                                <MDBIcon fas icon="filter" /> Filtra per tipo
-                            </MDBDropdownToggle>
-                            <MDBDropdownMenu>
-                                {["Tutti", "custom", "managed", "game"].map((n) => (
-                                    <MDBDropdownItem
-                                        link
-                                        key={n}
-                                        onClick={() => n.toLowerCase() === "tutti" ? setTypePortfolio("") : setTypePortfolio(n)}
-                                    >
-                                        {n}
-                                    </MDBDropdownItem>
-                                ))}
-                            </MDBDropdownMenu>
+                        {/* Buttons: full width on mobile */}
+                        <div className="d-flex flex-column flex-md-row gap-2 w-80 w-md-auto">
+                            {/* Filter */}
+                            <MDBDropdown className="w-100 w-md-auto">
+                                <MDBDropdownToggle
+                                    color="light"
+                                    className="d-flex align-items-center gap-2 border rounded-3 w-100 w-md-auto"
+                                >
+                                    <MDBIcon fas icon="filter" /> Filtra per tipo
+                                </MDBDropdownToggle>
 
-                        </MDBDropdown>
+                                <MDBDropdownMenu>
+                                    {["Tutti", "custom", "managed", "game"].map((n) => (
+                                        <MDBDropdownItem
+                                            link
+                                            key={n}
+                                            onClick={() => (n.toLowerCase() === "tutti" ? setTypePortfolio("") : setTypePortfolio(n))}
+                                        >
+                                            {n}
+                                        </MDBDropdownItem>
+                                    ))}
+                                </MDBDropdownMenu>
+                            </MDBDropdown>
 
-                        {/* Bottone Nuovo Portafoglio */}
-                        <MDBBtn
-                            onClick={(e) => {
-                                navigate(`/new_portfolio/`);
-                            }} className="fw-bold" style={{ backgroundColor: "rgb(38, 53, 80)" }}>
-                            <MDBIcon fas icon="plus" className="me-2" /> Nuovo Portafoglio
-                        </MDBBtn>
+                            {/* New button */}
+                            <MDBBtn
+                                className="border rounded-3 w-100 w-md-auto"
+                                style={{ backgroundColor: "rgb(38, 53, 80)" }}
+                                onClick={() => navigate(`/new_portfolio/`)}
+                            >
+                                <MDBIcon fas icon="plus" className="me-2" /> Nuovo Portafoglio
+                            </MDBBtn>
+                        </div>
                     </div>
                 </MDBCol>
             </MDBRow>
 
-            <MDBRow>
+            {/* ======= LIST ======= */}
+            <MDBRow className="g-3 mt-1">
                 {loading && (
-                    <General_Loading theme="formLoading" text="Caricamento Portafogli" />
+                    <MDBCol xs="12">
+                        <General_Loading theme="formLoading" text="Caricamento Portafogli" />
+                    </MDBCol>
                 )}
+
                 {showDataPortfolios.map((child, index) => (
                     <MDBCol
                         key={child.portfolio_uid ? child.portfolio_uid : index}
-                        className="py-3"
+                        xs="12"
                         md="6"
-                        xl="4">
-                        <MDBAnimation
-                            reset={true}
-                            animation='pulse'
-                            start='onHover'
-                            duration={500}
-                        >
-
+                        xl="4"
+                        className="py-1"
+                    >
+                        <MDBAnimation reset={true} animation='pulse' start='onHover' duration={500}>
                             <MDBCard
                                 style={{ cursor: "pointer" }}
-                                onClick={(e) => {
-                                    navigate(`/portfolio/${encodeURIComponent(child.portfolio_uid)}`);
-                                }}
-                                className=" border-0 rounded-3">
-                                <MDBCardHeader className="d-flex justify-content-between align-items-center" style={{ backgroundColor: "rgb(38, 53, 80)", color: "white" }}>
-                                    <div>
-                                        <div className="fw-bold">
-                                            <i className="fas fa-wallet"></i>{" "}
-                                            {child.type == 'managed' ?
-                                                managedName[child.managed_uid]
-                                                : "Personale"
-                                            }
-                                        </div>
+                                onClick={() => navigate(`/portfolio/${encodeURIComponent(child.portfolio_uid)}`)}
+                                className="border-0 rounded-3 h-100"
+                            >
+                                <MDBCardHeader
+                                    className="d-flex justify-content-between align-items-center"
+                                    style={{ backgroundColor: "rgb(38, 53, 80)", color: "white" }}
+                                >
+                                    <div className="fw-bold">
+                                        <i className="fas fa-wallet"></i>{" "}
+                                        {child.type === 'managed'
+                                            ? managedName[child.managed_uid]
+                                            : "Personale"}
                                     </div>
-
-                                    <div className="d-flex align-items-center">
-                                        <MDBIcon fas icon="bell" />
-                                    </div>
+                                    <MDBIcon fas icon="bell" />
                                 </MDBCardHeader>
+
                                 <MDBCardBody>
-                                    {/* Header */}
                                     <div className="d-flex justify-content-between align-items-center mb-3">
                                         <MDBCardTitle className="mb-0">{child.title}</MDBCardTitle>
                                         <MDBIcon fas icon="fire" className="text-warning" />
                                     </div>
 
-                                    {/* Valore investito */}
                                     <div className="d-flex justify-content-between align-items-center mb-2">
                                         <MDBCardText className="text-muted small mb-0">Totale Investito</MDBCardText>
-                                        <h5 className=" mb-0">{child.cash_position} €</h5>
+                                        <h5 className="mb-0">{child.cash_position} €</h5>
                                     </div>
 
-
-                                    {/* Obbiettivo de raggiungere */}
                                     <div className="d-flex justify-content-between align-items-center mb-2">
                                         <MDBCardText className="text-muted small mb-0">Obbiettivo</MDBCardText>
-                                        <span className="">{child.target}€ in {child.time_horizon_years} Anni</span>
+                                        <span>{child.target}€ in {child.time_horizon_years} Anni</span>
                                     </div>
 
-
-
-
-                                    {/* Rendimento totale */}
                                     <div className="d-flex justify-content-between align-items-center mb-2">
                                         <MDBCardText className="text-muted small mb-0">Liquidita Attuale</MDBCardText>
                                         <span className="text-success fw-bold">{child.totals!.cash_position} €</span>
                                     </div>
 
-
-                                    {/* Valore attuale */}
                                     <div className="d-flex justify-content-between align-items-center mb-2">
                                         <MDBCardText className="text-muted small mb-0">Valore Attuale</MDBCardText>
                                         <h5 className="fw-bold mb-0">{child.totals!.total_with_cash ?? 0} €</h5>
@@ -390,38 +295,13 @@ const PortfoliosDashboard: React.FC = () => {
 
                                     <hr />
 
-                                    {/* Rendimento mensile */}
-                                    {/* <MDBCardText className="text-muted small mb-2">Rendimento Mensile</MDBCardText>
-                                    <div
-                                        className="d-flex align-items-center justify-content-center bg-light text-muted mb-3"
-                                        style={{ height: "200px", borderRadius: "8px" }}
-                                    >
-
-                                        <ResponsiveBar
-                                            data={data}
-                                            keys={["Percentuale"]}
-                                            indexBy="mese"
-                                            margin={{ top: 5, right: 30, bottom: 20, left: 45 }}
-                                            axisLeft={{
-                                                legend: " %",
-                                                legendOffset: -40,
-                                                legendPosition: "middle",
-                                            }}
-                                            labelSkipWidth={12}
-                                            labelSkipHeight={12}
-                                            colors={({ value }) =>
-                                                value != null && value >= 0
-                                                    ? "rgba(0, 115, 1, 0.5)"
-                                                    : "rgba(229, 0, 0, 0.5)"
-                                            }
-                                        />
-                                    </div> */}
                                     <div className="text-end">
                                         <span className="text-muted me-1">Progresso</span>
                                         <span className="fw-bold">
                                             {Math.min((child.totals!.total_with_cash / child.target) * 100, 100).toFixed(1)}%
                                         </span>
                                     </div>
+
                                     <MDBProgress className="mb-3 rounded" style={{ height: "10px" }}>
                                         <MDBProgressBar
                                             width={Math.min((child.totals!.total_with_cash / child.target) * 100, 100)}
@@ -432,8 +312,6 @@ const PortfoliosDashboard: React.FC = () => {
                                         />
                                     </MDBProgress>
 
-
-                                    {/* Tag degli asset */}
                                     <div className="d-flex flex-wrap gap-2">
                                         {child.assets && child.assets.length > 0 ? (
                                             child.assets.map((asset, i) => (
@@ -442,7 +320,9 @@ const PortfoliosDashboard: React.FC = () => {
                                                 </MDBBadge>
                                             ))
                                         ) : (
-                                            <MDBBadge color="light" className="text-muted border">Nessun asset</MDBBadge>
+                                            <MDBBadge color="light" className="text-muted border">
+                                                Nessun asset
+                                            </MDBBadge>
                                         )}
                                     </div>
                                 </MDBCardBody>
@@ -450,11 +330,14 @@ const PortfoliosDashboard: React.FC = () => {
                         </MDBAnimation>
                     </MDBCol>
                 ))}
+            </MDBRow>
 
-                <div className="d-flex justify-content-between align-items-center p-3">
+            {/* ======= FOOTER (responsive) ======= */}
+            <MDBRow className="align-items-center mt-2">
+                <MDBCol col="4"  sm="4" md="2">
                     <MDBDropdown>
-                        <MDBDropdownToggle color="secondary" className="shadow-0">
-                            Per pagina {filters.per_page}
+                        <MDBDropdownToggle color="secondary" className="shadow-0 w-100 w-md-auto">
+                            Per pagina
                         </MDBDropdownToggle>
                         <MDBDropdownMenu>
                             {[10, 25, 50, 100].map((n) => (
@@ -464,18 +347,23 @@ const PortfoliosDashboard: React.FC = () => {
                             ))}
                         </MDBDropdownMenu>
                     </MDBDropdown>
+                </MDBCol>
 
-                    <div className="text-muted small">Elementi: <b>{itemsNum}</b></div>
+                <MDBCol col="4" sm="4" md="8" className=" my-3 text-center text-md-center">
+                    <div className="text-muted small">
+                        Elementi: <b>{itemsNum}</b>
+                    </div>
+                </MDBCol>
 
+                <MDBCol col="4"  sm="4" md="2" className="d-flex justify-content-md-end justify-content-center">
                     <Pagination
                         setCurrentPage={setCurrentPage}
                         currentPage={filters.page ?? 1}
                         totalPages={pagesNum}
                     />
-                </div>
+                </MDBCol>
             </MDBRow>
-        </MDBContainer >
-
+        </MDBContainer>
     );
 };
 

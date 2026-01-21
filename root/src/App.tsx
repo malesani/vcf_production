@@ -9,39 +9,25 @@ import ProtectedRoute from './auth_module/ProtectedRoute';
 import './App.css';
 import Skeleton from './page_structure/Skeleton';
 
-import { getUserInfo } from './api_module_v1/UserRequest';
 import publicRoutes from './routes/PublicRoutes';
 import { getDatabaseRoutes } from './routes/DatabaseRoutes';
 import Dashboard from './pages/Dashboard';
 import LoadingPage from './pages/Loading';
 
 const AppRoutes: React.FC = () => {
-  const { isAuthenticated, authLoading } = useAuth();
+  const { isAuthenticated, authLoading, userInfo } = useAuth();
   const [dynamicRoutes, setDynamicRoutes] = useState<RouteObject[]>([]);
   const [router, setRouter] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [userName, setUserName] = useState<string>('');
+  const userName = userInfo ? `${userInfo.first_name} ${userInfo.last_name}` : '';
 
-  // Carica rotte dinamiche e info utente
+  // Carica rotte dinamiche (userInfo è già nel context)
   useEffect(() => {
     if (!authLoading) {
       const loadData = async () => {
         if (isAuthenticated) {
           const dbRoutes = await getDatabaseRoutes();
           setDynamicRoutes(dbRoutes);
-          try {
-            const result = await getUserInfo();
-            if (!result.data) {
-              console.error('getUserInfo returned no user_info');
-            } else {
-              const { first_name, last_name } = result.data;
-              const name = `${first_name} ${last_name}`;
-              setUserName(name);
-            }
-
-          } catch (e) {
-            console.error('Errore getUserInfo:', e);
-          }
         } else {
           setDynamicRoutes([]);
         }
@@ -88,7 +74,7 @@ const AppRoutes: React.FC = () => {
     }
   }, [dynamicRoutes, isLoading, userName]);
 
-  if (authLoading || isLoading || !router) {
+  if (authLoading || (isAuthenticated && !userInfo) || isLoading || !router) {
     return <LoadingPage />;
   }
 

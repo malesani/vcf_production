@@ -118,7 +118,7 @@ const SideNav: React.FC<SidebarProps> = ({
       return (
         <MDBSideNavItem key={item.name}>
           <MDBSideNavLink onClick={() => onClickChangeAppState(item.newAppState, buildPath(item))}>
-            {item.icon && <MDBIcon fas icon={item.icon} className="fa-fw me-3" />}
+            {item.icon && <MDBIcon fas icon={item.icon} className="fa-fw me-3" style={{color:"white"}}/>}
             <span className="sidenav-non-slim">{item.name}</span>
           </MDBSideNavLink>
         </MDBSideNavItem>
@@ -153,6 +153,7 @@ const SideNav: React.FC<SidebarProps> = ({
         slim={!isMobile && slimMode}
         slimCollapsed={isNavCollapsed}
         closeOnEsc={isMobile}
+        style={{background:"rgba(33, 56, 74, 1)", color:"white"}}
       >
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
@@ -171,7 +172,7 @@ const SideNav: React.FC<SidebarProps> = ({
             {!isMobile && (
               <MDBSideNavItem>
                 <MDBSideNavLink onClick={() => { setSlimMode(s => !s); setOpenCollapses({}); }}>
-                  <MDBIcon fas icon="bars" className="fa-fw me-3" />
+                  <MDBIcon fas icon="bars" className="fa-fw me-3" style={{color:"white"}}/>
                 </MDBSideNavLink>
               </MDBSideNavItem>
             )}

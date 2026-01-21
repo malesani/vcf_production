@@ -71,7 +71,7 @@ const SimulationPage: React.FC = () => {
 
     // SET LOADING
     if (loadingMode) {
-        return (<General_Loading theme="pageLoading" title='Nuovo Progetto' />);
+        return (<General_Loading theme="pageLoading" title='' />);
     }
 
 

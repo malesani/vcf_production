@@ -14,7 +14,12 @@ export type SelectData = {
     defaultSelected?: boolean;
     secondaryText?: React.ReactNode;
     renderCard?: (opts: { isSelected: boolean, onSelect: () => void }) => React.ReactNode;
-    value: string | number ;
+    value: string | number;
+    description?: string;
+    adv_growthPercentFrom?: number,
+    adv_growthPercentTo?: number,
+    adv_timeRangeFrom?: number,
+    adv_timeRangeTo?: number,
     icon?: string;
     active?: boolean;
     optgroup?: string;
@@ -519,10 +524,15 @@ export function computeValidation<T>(f: FieldConfig<T>, value: any, formData: T)
             }
             break;
 
-        case "password":
+        case "password": {
             const pwRegex = /^.{8,20}$/;
-            isValid = pwRegex.test(value);
+            if (value == null || value === "") {
+                isValid = !f.required;   // se required => false
+            } else {
+                isValid = pwRegex.test(String(value)); // e qui va bene
+            }
             break;
+        }
 
         case "number":
             const minValue = f.properties?.minValue ?? null;

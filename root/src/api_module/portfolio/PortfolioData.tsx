@@ -154,6 +154,26 @@ export async function get_assetPrices(
 }
 
 
+export type AssetEarning = {
+  symbol: string;
+  earning_cash: number;
+};
+export async function get_assetsEarnings(
+  { portfolio_uid }: { portfolio_uid: string }
+): Promise<DataResponse<AssetEarning[]>> {
+  const response = await requestFunction(
+    '/portfolios/api/portfolio.php',
+    'GET',
+    'assetsEarnings',
+    { portfolio_uid }
+  );
+  if (response.success && response.data) {
+    return { response, data: response.data as AssetEarning[] };
+  }
+  return { response };
+}
+
+
 // -----------------------------
 // Lista (non paginata) – stile products.get_productsList
 // NB: l’endpoint portfolios_list accetta i filtri come query flat, non {filters: {...}}

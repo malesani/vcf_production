@@ -260,19 +260,16 @@ export const Selectbox_Cards = forwardRef<HTMLDivElement, CustomSelectProps>(
                 onClick={onSelect}
               >
                 {opt.secondaryText ? (<>
-                  <MDBCardHeader
-                    className="d-flex justify-content-between align-items-center"
-                    role="button"
-                  >
-                    <div className="d-flex flex-row align-items-center">
-                      <p className={`mb-0 ${styles.cardTitle}`}>{opt.text}</p>
+                  <MDBCardBody className="d-flex align-items-center px-5 py-6">
+                    <div className="me-3 d-flex align-items-center justify-content-center" style={{background:"rgba(190, 219, 255, 1)", borderRadius:"10px", width:"40px", height:"40px"}}>
+                      <MDBIcon className="" icon={opt.icon} style={{ color: 'rgba(21, 93, 252, 1)' }}></MDBIcon>
                     </div>
-                    <MDBIcon icon={opt.icon} ></MDBIcon>
-                  </MDBCardHeader>
-                  <MDBCardBody className="py-2">
-                    <p className="mb-0 text-muted">
-                      {opt.secondaryText}
-                    </p>
+                    <div className="d-flex flex-column ">
+                      <p className={`mb-0 ${styles.cardTitle}`}>{opt.text}</p>
+                      <p className="mb-0 text-muted">
+                        {opt.secondaryText}
+                      </p>
+                    </div>
                   </MDBCardBody>
                 </>) : (<>
                   <MDBCardBody

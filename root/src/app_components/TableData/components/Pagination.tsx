@@ -46,7 +46,7 @@ const PaginationComponent: React.FC<PaginationComponentProps> = ({
 
   return (
     <nav aria-label="Page navigation example">
-      <MDBPagination className="mb-0 p-3 d-flex justify-content-center">
+      <MDBPagination className="mb-0 px-3 d-flex justify-content-center">
         {/* Botón Anterior */}
         <MDBPaginationItem disabled={currentPage === 1}>
           <MDBPaginationLink

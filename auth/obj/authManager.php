@@ -9,6 +9,9 @@ if ($srcPath == "") $srcPath = "/var/www/html";
 require_once "$srcPath/config/config.php";
 require_once "$srcPath/vendor/autoload.php";
 
+require_once "$srcPath/smtp/obj/smtpObj.php";
+require_once "$srcPath/smtp/obj/templatesObj.php";
+
 use \Firebase\JWT\JWT;
 use \Firebase\JWT\Key;
 
@@ -1089,5 +1092,424 @@ class authManager
             }
         }
         return $pdo;
+    }
+
+    /**
+     * Richiesta reset password (anti user-enumeration).
+     *
+     * Tabella: auth_reset_tokens
+     *
+     * @param string $email
+     * @return array{success:bool,message:string,error?:string}
+     */
+    public function forgotPassword(string $email): array
+    {
+        $email = trim($email);
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return [
+                'success' => false,
+                'message' => 'forgot.400.invalidEmailFormat',
+                'error'   => 'Invalid email format',
+            ];
+        }
+
+        try {
+            $conn = $this->get_dbConn();
+
+            // Cerca utente
+            $stmt = $conn->prepare("
+                SELECT user_uid, blocked
+                FROM acl_users
+                WHERE email = :email
+                LIMIT 1
+            ");
+            $stmt->execute([':email' => $email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Utente non esiste (true, non mostra nulla a frontend)
+            if (!$user) {
+                $this->addAuditLog('ForgotPasswordUnknownEmail', 'Forgot password requested for unknown email: ' . $email);
+                return [
+                    'success' => true,
+                    'message' => 'forgot.200.emailSent',
+                ];
+            }
+
+            // Utente bloccato (false)
+            if (!empty($user['blocked'])) {
+                return [
+                    'success' => false,
+                    'message' => 'forgot.403.userBlocked',
+                    'error'   => 'User is blocked',
+                ];
+            }
+
+            $user_uid = (string)$user['user_uid'];
+            $now      = time();
+
+            // Invalida eventuali token precedenti non usati
+            $stmt = $conn->prepare("
+                UPDATE auth_reset_tokens
+                SET used_at = :now
+                WHERE user_uid = :user_uid
+                AND used_at IS NULL
+            ");
+            $stmt->execute([
+                ':now'      => $now,
+                ':user_uid' => $user_uid,
+            ]);
+
+            // Genera token
+            $tokenPlain = bin2hex(random_bytes(32));
+            $tokenHash  = hash('sha256', $tokenPlain);
+            $expiresAt  = $now + 3600;
+
+            $ip        = $_SERVER['REMOTE_ADDR']     ?? 'unknown';
+            $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+
+            // Inserisci token
+            $stmt = $conn->prepare("
+                INSERT INTO auth_reset_tokens
+                    (user_uid, email, token_hash, expires_at, created_at, requested_ip, user_agent)
+                VALUES
+                    (:user_uid, :email, :token_hash, :expires_at, :created_at, :requested_ip, :user_agent)
+            ");
+            $stmt->execute([
+                ':user_uid'     => $user_uid,
+                ':email'        => $email,
+                ':token_hash'   => $tokenHash,
+                ':expires_at'   => $expiresAt,
+                ':created_at'   => $now,
+                ':requested_ip' => $ip,
+                ':user_agent'   => mb_substr($userAgent, 0, 512),
+            ]);
+
+            // Link reset
+            $frontend = rtrim((string)Auth_Frontend::Origin, '/');
+
+            if ($frontend === '') {
+                throw new \RuntimeException('FRONTEND_ORIGIN not configured');
+            }
+
+            $resetUrl = $frontend . '/reset_password?token=' . urlencode($tokenPlain);
+
+            // 6) Invio email
+            $subject = "Reimposta la tua password";
+
+            // HTML dal template
+            $html = templatesObj::render(
+                '',
+                'forgot_password',
+                $subject,
+                [
+                    'reset_link' => $resetUrl,
+                    'subject'    => $subject,
+                    'email'      => $email,
+                ]
+            );
+
+            // SMTP (config unica da .env)
+            $smtp = new smtpObj();
+
+            ob_start();
+            try {
+                // From preso automaticamente da SmtpConfig::FROM (+ FROM_NAME)
+                $smtp->sendMail($email, $subject, $html);
+            } finally {
+                ob_end_clean();
+            }
+
+            $this->addAuditLog('ForgotPasswordRequested', "Password reset requested for user_uid={$user_uid}, email={$email}");
+
+            return [
+                'success' => true,
+                'message' => 'forgot.200.emailSent',
+            ];
+        } catch (\Throwable $e) {
+            $this->addAuditLog('ForgotPasswordError', 'Error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'forgot.500.internalError',
+                'error'   => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Validazione read-only token reset (NON modifica il DB).
+     *
+     * @return array{
+     *   success: bool,
+     *   message: string,
+     *   error?: string,
+     *   code?: string,
+     *   email?: string|null,
+     *   http_code?: int
+     * }
+     */
+    public function validateResetToken(string $tokenPlain): array
+    {
+        $tokenPlain = trim($tokenPlain);
+
+        if ($tokenPlain === '') {
+            return [
+                'success'   => false,
+                'message'   => 'reset.400.invalidToken',
+                'error'     => 'Empty token',
+                'code'      => 'invalid',
+                'http_code' => 400,
+            ];
+        }
+
+        try {
+            $conn = $this->get_dbConn();
+            $now  = time();
+
+            $tokenHash = hash('sha256', $tokenPlain);
+
+            $stmt = $conn->prepare("
+                SELECT id, user_uid, email, expires_at, used_at
+                FROM auth_reset_tokens
+                WHERE token_hash = :hash
+                LIMIT 1
+            ");
+            $stmt->execute([':hash' => $tokenHash]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$row) {
+                $this->addAuditLog('ResetTokenCheckNotFound', 'Token not found for hash: ' . $tokenHash);
+                return [
+                    'success'   => false,
+                    'message'   => 'reset.400.invalidOrExpiredToken',
+                    'error'     => 'Token not found',
+                    'code'      => 'not_found',
+                    'http_code' => 400,
+                ];
+            }
+
+            $expiresAt = (int)$row['expires_at'];
+            $usedAt    = $row['used_at'] !== null ? (int)$row['used_at'] : null;
+
+            if ($usedAt !== null) {
+                return [
+                    'success'   => false,
+                    'message'   => 'reset.400.tokenAlreadyUsed',
+                    'error'     => 'Token already used',
+                    'code'      => 'used',
+                    'http_code' => 400,
+                ];
+            }
+
+            if ($expiresAt < $now) {
+                return [
+                    'success'   => false,
+                    'message'   => 'reset.400.invalidOrExpiredToken',
+                    'error'     => 'Token expired',
+                    'code'      => 'expired',
+                    'http_code' => 400,
+                ];
+            }
+
+            return [
+                'success'   => true,
+                'message'   => 'reset.200.tokenValid',
+                'code'      => 'valid',
+                'email'     => $row['email'] ?? null,
+                'http_code' => 200,
+            ];
+        } catch (\Throwable $e) {
+            $this->addAuditLog('ResetTokenValidateError', 'Error: ' . $e->getMessage());
+            return [
+                'success'   => false,
+                'message'   => 'reset.500.internalError',
+                'error'     => $e->getMessage(),
+                'code'      => 'error',
+                'http_code' => 500,
+            ];
+        }
+    }
+
+    /**
+     * Consuma token e imposta nuova password.
+     *
+     * @param string $tokenPlain
+     * @param string $newPassword
+     * @return array{success:bool,message:string,error?:string,http_code?:int,email?:string|null}
+     */
+    public function resetPassword(string $tokenPlain, string $newPassword): array
+    {
+        $tokenPlain  = trim($tokenPlain);
+        $newPassword = (string)$newPassword;
+
+        if ($tokenPlain === '') {
+            return [
+                'success'   => false,
+                'message'   => 'reset.400.invalidToken',
+                'error'     => 'Empty token',
+                'http_code' => 400,
+            ];
+        }
+
+        if ($newPassword === '' || strlen($newPassword) < 8) {
+            return [
+                'success'   => false,
+                'message'   => 'reset.400.passwordTooWeak',
+                'error'     => 'Password must be at least 8 characters',
+                'http_code' => 400,
+            ];
+        }
+
+        $conn = null;
+
+        try {
+            $conn = $this->get_dbConn();
+            $now  = time();
+
+            $tokenHash = hash('sha256', $tokenPlain);
+
+            $stmt = $conn->prepare("
+                SELECT id, user_uid, email, expires_at, used_at
+                FROM auth_reset_tokens
+                WHERE token_hash = :hash
+                LIMIT 1
+            ");
+            $stmt->execute([':hash' => $tokenHash]);
+            $resetRow = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$resetRow) {
+                $this->addAuditLog('ResetPasswordInvalidToken', 'Invalid token hash: ' . $tokenHash);
+                return [
+                    'success'   => false,
+                    'message'   => 'reset.400.invalidOrExpiredToken',
+                    'error'     => 'Token not found',
+                    'http_code' => 400,
+                ];
+            }
+
+            $id        = (int)$resetRow['id'];
+            $user_uid  = (string)$resetRow['user_uid'];
+            $expiresAt = (int)$resetRow['expires_at'];
+            $usedAt    = $resetRow['used_at'] !== null ? (int)$resetRow['used_at'] : null;
+
+            if ($usedAt !== null) {
+                return [
+                    'success'   => false,
+                    'message'   => 'reset.400.invalidOrExpiredToken',
+                    'error'     => 'Token already used',
+                    'http_code' => 400,
+                ];
+            }
+
+            if ($expiresAt < $now) {
+                $stmt = $conn->prepare("UPDATE auth_reset_tokens SET used_at = :now WHERE id = :id");
+                $stmt->execute([':now' => $now, ':id' => $id]);
+
+                return [
+                    'success'   => false,
+                    'message'   => 'reset.400.invalidOrExpiredToken',
+                    'error'     => 'Token expired',
+                    'http_code' => 400,
+                ];
+            }
+
+            $stmt = $conn->prepare("
+                SELECT user_uid, blocked
+                FROM acl_users
+                WHERE user_uid = :uid
+                LIMIT 1
+            ");
+            $stmt->execute([':uid' => $user_uid]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$user) {
+                return [
+                    'success'   => false,
+                    'message'   => 'reset.404.userNotFound',
+                    'error'     => 'User not found',
+                    'http_code' => 404,
+                ];
+            }
+
+            if (!empty($user['blocked'])) {
+                return [
+                    'success'   => false,
+                    'message'   => 'reset.403.userBlocked',
+                    'error'     => 'User is blocked',
+                    'http_code' => 403,
+                ];
+            }
+
+            $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
+            if (!$newHash) {
+                return [
+                    'success'   => false,
+                    'message'   => 'reset.500.hashFailed',
+                    'error'     => 'Unable to hash password',
+                    'http_code' => 500,
+                ];
+            }
+
+            $conn->beginTransaction();
+
+            $stmt = $conn->prepare("
+                UPDATE acl_users
+                SET hash_pw = :hash
+                WHERE user_uid = :uid
+                LIMIT 1
+            ");
+            $stmt->execute([':hash' => $newHash, ':uid' => $user_uid]);
+
+            if ($stmt->rowCount() !== 1) {
+                $conn->rollBack();
+                return [
+                    'success'   => false,
+                    'message'   => 'reset.500.updateFailed',
+                    'error'     => 'Password update failed',
+                    'http_code' => 500,
+                ];
+            }
+
+            // Marca token usato
+            $stmt = $conn->prepare("
+                UPDATE auth_reset_tokens
+                SET used_at = :now
+                WHERE id = :id
+                LIMIT 1
+            ");
+            $stmt->execute([':now' => $now, ':id' => $id]);
+
+            // Invalida eventuali altri token aperti dello stesso utente
+            $stmt = $conn->prepare("
+                UPDATE auth_reset_tokens
+                SET used_at = :now
+                WHERE user_uid = :uid
+                AND used_at IS NULL
+                AND id <> :id
+            ");
+            $stmt->execute([':now' => $now, ':uid' => $user_uid, ':id' => $id]);
+
+            $conn->commit();
+
+            $this->addAuditLog('ResetPasswordSuccess', "Password reset completed user_uid={$user_uid}, token_id={$id}");
+
+            return [
+                'success'   => true,
+                'message'   => 'reset.200.passwordUpdated',
+                'http_code' => 200,
+                'email'     => $resetRow['email'] ?? null,
+            ];
+        } catch (\Throwable $e) {
+            if ($conn instanceof \PDO && $conn->inTransaction()) {
+                $conn->rollBack();
+            }
+            $this->addAuditLog('ResetPasswordError', 'Error: ' . $e->getMessage());
+            return [
+                'success'   => false,
+                'message'   => 'reset.500.internalError',
+                'error'     => $e->getMessage(),
+                'http_code' => 500,
+            ];
+        }
     }
 }

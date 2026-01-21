@@ -7,11 +7,9 @@ export type AssetsInfo = {
 export interface AlertInfo {
     alert_uid: string;
     managed_uid: string;
-
     title: string;
     description: string | null;
     html_body: string;
-
     status: 'draft' | 'sended' | 'programmed' | 'deleted';
 
     scheduled_at: Date;  // data+ora

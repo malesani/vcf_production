@@ -29,13 +29,14 @@ class userObj {
     private function load_userInfo() {
         $user_uid = $this->user_data['user_uid'];
         $stmt = $this->conn->prepare("
-            SELECT user_uid, email, first_name, last_name, phone 
+            SELECT user_uid, email, first_name, last_name, phone, quiz 
             FROM acl_users 
             WHERE user_uid = :user_uid
         ");
         $stmt->execute(["user_uid" => $user_uid]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($row) {
+            $row['quiz'] = (int)$row['quiz'];
             return $row;
         } else {
             throw new Exception("User not found for user_uid= '".$user_uid."'");

@@ -44,7 +44,7 @@ const ManagedPortfolioDashboard: React.FC = () => {
     }, [managed_uid]);
 
     if (loadingMode || !managed_uid) {
-        return (<General_Loading theme="pageLoading" title='Dashboard Portafoglio' />);
+        return (<General_Loading theme="pageLoading" title='' />);
     }        
 
     // ====== RENDER ======

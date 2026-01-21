@@ -6,6 +6,7 @@ export interface APIUserInfo {
     first_name: string;
     last_name: string;
     phone: string | null;
+    quiz: number;
 }
 
 type Base64String = string;

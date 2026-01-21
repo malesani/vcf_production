@@ -2,6 +2,7 @@
 require_once("{$_SERVER['DOCUMENT_ROOT']}/auth/obj/authManager.php");
 require_once("{$_SERVER['DOCUMENT_ROOT']}/auth/obj/permsManager.php");
 require_once("{$_SERVER['DOCUMENT_ROOT']}/financialData/obj/StockPriceProvider.php");
+require_once("{$_SERVER['DOCUMENT_ROOT']}/operations/obj/operationsObj.php");
 
 
 class portfolioObjBase
@@ -118,6 +119,7 @@ class portfolioObj extends portfolioObjBase
 {
     private ?string $portfolio_uid = null;
     private array $portfolio_info = [];
+    private array $portfolio_operations = [];
     private array $assets = [];
 
     public function __construct(authManager $authManager, permsManager $permsManager, ?string $portfolio_uid = null)
@@ -210,6 +212,95 @@ class portfolioObj extends portfolioObjBase
         return self::computeTotalsFromAssets($this->assets, $cash_position);
     }
 
+    private function load_operations(): array
+    {
+        $opsObj = new operationsObj($this->authManager, $this->permsManager, $this->portfolio_uid);
+        $opsResp = $opsObj->get_operations([], true);
+
+        if (!$opsResp['success']) {
+            throw new Exception($opsResp['error']);
+        }
+
+        if (!isset($opsResp['data'])) {
+            throw new Exception("Unaspected error in operation's get format.");
+        }
+
+        return $opsResp['data'];
+    }
+
+    private function compute_assetsEarnings(): array
+    {
+        if (empty($this->portfolio_operations)) {
+            $this->portfolio_operations = $this->load_operations();
+        }
+
+        // Prendo tutti i simboli dalle operazioni
+        $symbols = array_column($this->portfolio_operations, 'symbol');
+
+        // Rimuovo duplicati
+        $symbols = array_unique($symbols);
+
+        // Escludo simbolo CASH_EUR
+        $symbols = array_filter($symbols, fn($sym) => $sym !== 'CASH_EUR');
+
+        // Calcolo earning per ogni symbol
+        $assetsEarnings = [];
+        foreach ($symbols as $symbol) {
+            $assetsEarnings[] = [
+                "symbol" => $symbol,
+                "earning_cash" => $this->compute_assetEarn($symbol)
+            ];
+        }
+
+        return $assetsEarnings;
+    }
+
+
+    private function compute_assetEarn(string $symbol): float
+    {
+        $earn_cash = 0;
+
+        $operations = array_filter($this->portfolio_operations, function ($operation) use ($symbol) {
+            return isset($operation['symbol']) && $operation['symbol'] === $symbol;
+        });
+
+        usort($operations, function ($a, $b) {
+            return strtotime($a['created_at']) <=> strtotime($b['created_at']);
+        });
+
+        $buyOp_list = [];
+        $last_avUnitValue = 0;
+        foreach ($operations as $op) {
+            if ($op['operation'] == 'buy') {
+                $buyOp_list[] = [
+                    'quantity' => (int)$op['unitQuantity'],
+                    'unitPrice' => (float)$op['unitaryPrice']
+                ];
+            }
+            if ($op['operation'] == 'sell') {
+                // Calcolo media
+                $totalQty = 0;
+                $buyedQty = 0;
+                foreach ($buyOp_list as $buyOp) {
+                    $totalQty += $buyOp['quantity'];
+                    $buyedQty += $buyOp['unitPrice'] * $buyOp['quantity'];
+                }
+                if ($totalQty > 0 && $buyedQty > 0) {
+                    $last_avUnitValue = round($buyedQty / $totalQty, 2);
+                }
+
+                // calcolo guadagno
+                $sell_qty = (int)$op['unitQuantity'];
+                $sell_unitPrice = (float)$op['unitaryPrice'];
+                $earn_cash += round(($sell_unitPrice - $last_avUnitValue) * $sell_qty, 2);
+
+                // reset array acquisto
+                $buyOp_list = [];
+            }
+        }
+
+        return $earn_cash;
+    }
 
     /** CREATE
      * - type: 'custom' | 'managed'
@@ -349,6 +440,16 @@ class portfolioObj extends portfolioObjBase
         return $this->assets;
     }
 
+
+    public function get_portfolioOperations(bool $refresh = false): array
+    {
+        if ($refresh || empty($this->portfolio_operations)) {
+            $this->portfolio_operations = $this->load_operations();
+        }
+
+        return $this->portfolio_operations;
+    }
+
     public function get_portfolioData(bool $refresh = false): array
     {
         if ($refresh) {
@@ -386,6 +487,25 @@ class portfolioObj extends portfolioObjBase
     {
         $symbols = array_column($this->assets, 'symbol') ?? [];
         return $this->priceProv->get_assetPrices($symbols);
+    }
+
+
+    public function get_assetsEarnings(): array
+    {
+        try {
+            $assetsEarnings = $this->compute_assetsEarnings();
+            return [
+                'success' => true,
+                'message' => 'portfolio.assetsearnings.success',
+                'data' => $assetsEarnings
+            ];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'portfolio.assetsearnings.error',
+                'error' => $e->getMessage()
+            ];
+        }
     }
 }
 

@@ -172,3 +172,68 @@ export interface UserData {
         }
     };
 // end
+
+// RESET PASSWORD FUNCTION
+export interface ResetPasswordResponse {
+  success: boolean;
+  message: string;
+  error?: string;
+  email?: string;
+}
+
+type ResetPayload = {
+  token: string;
+  password: string;
+  password_confirm?: string;
+};
+
+export type ResetPasswordFunctionType = (
+  token: string,
+  password: string,
+  passwordConfirm?: string
+) => Promise<ResetPasswordResponse>;
+
+export const resetPasswordFunction: ResetPasswordFunctionType = async (
+  token,
+  password,
+  passwordConfirm
+) => {
+  const payload: ResetPayload = { token, password };
+  if (typeof passwordConfirm === "string") {
+    payload.password_confirm = passwordConfirm;
+  }
+
+  try {
+    const response = await fetch("/auth/api/reset.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data?.message || "Reset password failed",
+        error: data?.error,
+      };
+    }
+    const success = !!data?.success;
+
+    return {
+      success,
+      message: data?.message || (success ? "Password updated successfully" : "Reset password failed"),
+      error: data?.error,
+      email: data?.email,
+    };
+  } catch (error: any) {
+    console.error("Reset password error:", error);
+    return {
+      success: false,
+      message: "Error during reset password request",
+      error: error?.message || "Unknown error",
+    };
+  }
+};
+// end

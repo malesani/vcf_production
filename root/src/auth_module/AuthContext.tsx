@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { profileFunction, UserData, CompaniesData } from './loginFunctions';
 import { requestFunction, requestResponse } from '../hooks/RequestFunction';
 
+import { getUserInfo } from '../api_module_v1/UserRequest';
 
 // Permissions Manage - Tipi per i permessi restituiti da profile.php con opt="permContext"
 export interface PermissionInfo {
@@ -28,6 +29,16 @@ interface AuthContextType {
   companiesData: CompaniesData[];
   selectedCompany?: string;
 
+  // user info (permette una sola chiamata e non due)
+  userInfo?: {
+    user_uid: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    phone: string;
+    quiz: 0 | 1;
+  };
+
   // helper permessi
   hasPerm: (permKey: string) => boolean;
   hasPermGroup: (groupKey: string) => boolean;
@@ -49,6 +60,7 @@ const AuthContext = createContext<AuthContextType>({
   userData: undefined,
   companiesData: [],
   selectedCompany: undefined,
+  userInfo: undefined,
   hasPerm: () => false,
   hasPermGroup: () => false,
   refreshAuth: async () => { },
@@ -64,6 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [companiesData, setCompaniesData] = useState<CompaniesData[]>([]);
   const [userData, setUserData] = useState<UserData | undefined>(undefined);
   const [selectedCompany, setSelectedCompany] = useState<string | undefined>(undefined);
+  const [userInfo, setUserInfo] = useState<AuthContextType["userInfo"]>(undefined);
   const [authLoading, setAuthLoading] = useState(true);
 
   // Stato Permessi
@@ -117,6 +130,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return group ? group.isValid : false;
   };
 
+  // Helper: carica quiz da user
+  const fetchQuizFromUser = async (): Promise<0 | 1> => {
+    try {
+      const r = await requestFunction('/users/api/user.php', 'GET', "user_info", {});
+      const q = (r as any)?.data?.user_info?.quiz;
+      return q === 1 ? 1 : 0;
+    } catch (e) {
+      console.error('fetchQuizFromUser error:', e);
+      return 0;
+    }
+  };
+
+
   // Ricarica il profilo, sincronizza selectedCompany e permessi
   const refreshAuth = async () => {
     setAuthLoading(true);
@@ -126,28 +152,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsAuthenticated(true);
         setIsSuperadmin((resp.data.user_data as any).super_admin as boolean);
 
-        // aggiorna le companies disponibili
         const comps = resp.data.companies_data ?? [];
         setCompaniesData(comps);
 
-        // aggiorna i dati utente
         setUserData(resp.data.user_data as UserData);
 
-        // sincronizza selectedCompany dal token
+        // ✅ UNA SOLA chiamata a /users/api/user.php
+        try {
+          const ui = await getUserInfo();
+          if (ui.data) {
+            setUserInfo({
+              user_uid: ui.data.user_uid,
+              email: ui.data.email,
+              first_name: ui.data.first_name,
+              last_name: ui.data.last_name,
+              phone: ui.data.phone ?? "",
+              quiz: ui.data.quiz === 1 ? 1 : 0,
+            });
+          } else {
+            setUserInfo(undefined);
+          }
+        } catch (e) {
+          console.error("getUserInfo error:", e);
+          setUserInfo(undefined);
+        }
+
         const companyFromToken = (resp.data.user_data as any).company_uid as string | undefined;
         setSelectedCompany(companyFromToken);
 
-        // Se c'è una sola company, carica subito i permessi senza selectCompany manuale
         if (comps.length === 1) {
           await refreshPermissions();
         }
       } else {
-        // reset su errore o token non valido
         setIsAuthenticated(false);
         setIsSuperadmin(false);
         setCompaniesData([]);
         setUserData(undefined);
         setSelectedCompany(undefined);
+        setUserInfo(undefined);
       }
     } catch (e) {
       console.error('refreshAuth error:', e);
@@ -193,6 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userData,
         companiesData,
         selectedCompany,
+        userInfo,
         hasPerm,
         hasPermGroup,
         refreshAuth,

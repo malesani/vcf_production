@@ -12,6 +12,15 @@ import {
     MDBInput,
     MDBRange,
     MDBCheckbox,
+
+    // ✅ MODAL (dialog)
+    MDBModal,
+    MDBModalDialog,
+    MDBModalContent,
+    MDBModalHeader,
+    MDBModalTitle,
+    MDBModalBody,
+    MDBModalFooter,
 } from "mdb-react-ui-kit";
 import { ResponsiveLine } from "@nivo/line";
 import { ResponsivePie } from "@nivo/pie";
@@ -136,17 +145,26 @@ const buildPastSeries = (
     ];
 };
 
-// ======= RESPONSIVE HOOK (md breakpoint) =======
-
-
 const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
     const isMobile = useIsMobile(992);
     const [perfil, setPerfil] = useState<Perfil>("tranquilo");
     const [invest, setInvest] = useState<number>(0);
     const [changeDetect, setChangeDetect] = useState<boolean>(false);
 
+    // ✅ dialog / modal stato
+    const [saveModalOpen, setSaveModalOpen] = useState(false);
+    const [saveModalType, setSaveModalType] = useState<"success" | "danger">("success");
+    const [saveModalText, setSaveModalText] = useState<string>("Salvato correttamente.");
+    const [saving, setSaving] = useState(false);
+
+    const openSaveModal = (type: "success" | "danger", text: string) => {
+        setSaveModalType(type);
+        setSaveModalText(text);
+        setSaveModalOpen(true);
+    };
+
     // ===== Backtest =====
-    const [backtestData, setBacktestData] = useState<LineSerie[]>([])
+    const [backtestData, setBacktestData] = useState<LineSerie[]>([]);
     const [pastYears, setPastYears] = useState("5");
     const [capitalBacktesting, setCapitalBacktesting] = useState("");
     const [monthlyBacktesting, setMonthlyBacktesting] = useState("");
@@ -156,8 +174,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
         const m = parseNum(monthlyBacktesting);
         const Ypast = Math.max(1, parseInt(pastYears, 10) || 1);
 
-        const annual =
-            perfil === "tranquilo" ? 0.02 : perfil === "dinamico" ? 0.05 : 0.1;
+        const annual = perfil === "tranquilo" ? 0.02 : perfil === "dinamico" ? 0.05 : 0.1;
 
         setBacktestData(buildPastSeries(P0, m, Ypast, annual));
     }, [capitalBacktesting, monthlyBacktesting, pastYears, perfil]);
@@ -169,8 +186,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
 
         const totalVersato = P0 + m * 12 * yearsN;
 
-        const lastY =
-            backtestData?.[0]?.data?.[backtestData[0].data.length - 1]?.y ?? 0;
+        const lastY = backtestData?.[0]?.data?.[backtestData[0].data.length - 1]?.y ?? 0;
 
         const capitaleOggi = Number(lastY) || 0;
 
@@ -192,7 +208,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
     const [autoYears, setAutoYears] = useState(false);
 
     const [lineData, setLineData] = useState<LineSerie[]>([]);
-
     const [pipeData, setPipeData] = useState<PieData[]>([]);
 
     const [options, setOptions] = useState({
@@ -237,7 +252,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
         setYears(String(neededYears));
     }, [autoYears, capital, monthly, objCapital]);
 
-
     useEffect(() => {
         const P0 = parseNum(capital);
         const m = parseNum(monthly);
@@ -247,19 +261,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
     }, [capital, monthly, years]);
 
     useEffect(() => {
-        const liquidita = Math.max(0, parseNum(capital));      // capital es string
-        const investiti = Math.max(0, Number(invest) || 0);    // invest es number
+        const liquidita = Math.max(0, parseNum(capital));
+        const investiti = Math.max(0, Number(invest) || 0);
 
         const next: PieData[] = [
             { id: "Liquidità", label: "Liquidità", value: liquidita },
             { id: "Investiti", label: "Investiti", value: investiti },
         ];
 
-        // opcional: si ambos son 0, poner un slice “Nessun dato” para evitar un pie vacío
         const safe =
-            liquidita + investiti > 0
-                ? next
-                : [{ id: "Nessun dato", label: "Nessun dato", value: 1 }];
+            liquidita + investiti > 0 ? next : [{ id: "Nessun dato", label: "Nessun dato", value: 1 }];
 
         setPipeData(safe);
     }, [capital, invest]);
@@ -276,7 +287,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
             })
             .filter(Boolean) as { id: string; year: string }[];
     }, [lineData, objCapital]);
-
 
     // ===== Activation banner =====
     type Banner = { type: "success" | "error"; text: string } | null;
@@ -331,7 +341,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
 
     // ===== Presets (quiz -> presets) =====
     useEffect(() => {
-        // metti qui la versione che stai usando nel quiz (es: "1.1")
         const QUIZ_VERSION = "1.1";
 
         getPresets({ quiz_version: QUIZ_VERSION })
@@ -347,19 +356,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                     return;
                 }
 
-                // ✅ QUI: vedi il contenuto che arriva dal quiz (preset_json.answers)
                 console.log("[PRESETS] preset row:", preset);
                 console.log("[PRESETS] quiz answers:", preset.preset_json?.answers);
-                //capitale
+
                 setCapitalBacktesting(preset.preset_json.answers.step_2.available_savings);
                 setCapital(preset.preset_json.answers.step_2.available_savings);
 
-                //mensile
                 setMonthlyBacktesting(preset.preset_json.answers.step_3.monthly_invest_capacity);
                 setMonthly(preset.preset_json.answers.step_3.monthly_invest_capacity);
 
                 setObjCapital(preset.preset_json.answers.step_3.target_capital);
-                setAutoYears(true)
+                setAutoYears(true);
                 setInvest(preset.preset_json.answers.step_2.invested_capital || 0);
             })
             .catch((err) => {
@@ -368,67 +375,109 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
     }, []);
 
     async function savePresetsFuture() {
-        const payload = {
-            quiz_version: "1.1",
-            patch: {
-                answers: {
-                    step_2: {
-                        question_uid: "step_2",
-                        available_savings: capital,
+        try {
+            setSaving(true);
+
+            const payload = {
+                quiz_version: "1.1",
+                patch: {
+                    answers: {
+                        step_2: {
+                            question_uid: "step_2",
+                            available_savings: capital,
+                        },
+                        step_3: {
+                            question_uid: "step_3",
+                            target_years: years,
+                            target_capital: objCapital,
+                            monthly_invest_capacity: monthly,
+                        },
                     },
-                    step_3: {
-                        question_uid: "step_3",
-                        target_years: years,
-                        target_capital: objCapital,
-                        monthly_invest_capacity: monthly
-                    }
                 },
-            },
-        };
+            };
 
-        const { response, data } = await patchPresets(payload);
+            const { response } = await patchPresets(payload);
 
-        if (!response.success) {
-            throw new Error(response.message ?? "presets.error");
+            if (!response.success) {
+                throw new Error(response.message ?? "presets.error");
+            }
+
+            setChangeDetect(false);
+            openSaveModal("success", "✅ Salvato correttamente!");
+        } catch (e: any) {
+            console.log("[PRESETS] patch error:", e);
+            openSaveModal("danger", `❌ Errore salvataggio: ${e?.message ?? "presets.error"}`);
+        } finally {
+            setSaving(false);
         }
-        setChangeDetect(false);
-
     }
 
     async function savePresetsBacktesting() {
-        const payload = {
-            quiz_version: "1.1",
-            patch: {
-                answers: {
-                    step_2: {
-                        question_uid: "step_2",
-                        available_savings: capitalBacktesting,
+        try {
+            setSaving(true);
+
+            const payload = {
+                quiz_version: "1.1",
+                patch: {
+                    answers: {
+                        step_2: {
+                            question_uid: "step_2",
+                            available_savings: capitalBacktesting,
+                        },
+                        step_3: {
+                            question_uid: "step_3",
+                            target_years: pastYears,
+                            monthly_invest_capacity: monthlyBacktesting,
+                        },
                     },
-                    step_3: {
-                        question_uid: "step_3",
-                        target_years: pastYears,
-                        monthly_invest_capacity: monthlyBacktesting
-                    }
                 },
-            },
-        };
+            };
 
-        const { response, data } = await patchPresets(payload);
+            const { response } = await patchPresets(payload);
 
-        if (!response.success) {
-            throw new Error(response.message ?? "presets.error");
+            if (!response.success) {
+                throw new Error(response.message ?? "presets.error");
+            }
+
+            setChangeDetect(false);
+            openSaveModal("success", "✅ Salvato correttamente!");
+        } catch (e: any) {
+            console.log("[PRESETS] patch error:", e);
+            openSaveModal("danger", `❌ Errore salvataggio: ${e?.message ?? "presets.error"}`);
+        } finally {
+            setSaving(false);
         }
-
-        setChangeDetect(false);
-
     }
+
     return (
         <>
+            {/* ✅ DIALOG SALVATAGGIO */}
+            <MDBModal open={saveModalOpen} setOpen={setSaveModalOpen} tabIndex="-1">
+                <MDBModalDialog centered>
+                    <MDBModalContent>
+                        <MDBModalHeader className={saveModalType === "success" ? "bg-success text-white" : "bg-danger text-white"}>
+                            <MDBModalTitle>
+                                {saveModalType === "success" ? "Salvataggio" : "Errore"}
+                            </MDBModalTitle>
+                            <MDBBtn className="btn-close btn-close-white" color="none" onClick={() => setSaveModalOpen(false)} />
+                        </MDBModalHeader>
+
+                        <MDBModalBody>
+                            <div style={{ fontSize: 15 }}>{saveModalText}</div>
+                        </MDBModalBody>
+
+                        <MDBModalFooter>
+                            <MDBBtn color={saveModalType === "success" ? "success" : "danger"} onClick={() => setSaveModalOpen(false)}>
+                                OK
+                            </MDBBtn>
+                        </MDBModalFooter>
+                    </MDBModalContent>
+                </MDBModalDialog>
+            </MDBModal>
+
             {banner && (
                 <MDBContainer>
-                    <div
-                        className={`alert alert-${banner.type === "success" ? "success" : "danger"} mb-0`}
-                    >
+                    <div className={`alert alert-${banner.type === "success" ? "success" : "danger"} mb-0`}>
                         {banner.text}
                     </div>
                 </MDBContainer>
@@ -514,16 +563,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                             borderColor={{ from: "color", modifiers: [["darker", 0.9]] }}
                                             enableArcLinkLabels={false}
                                             enableArcLabels={false}
-                                            legends={[{
-                                                anchor: "bottom",
-                                                direction: "row",
-                                                translateY: 50,
-                                                itemWidth: 90,
-                                                itemHeight: 18,
-                                                itemsSpacing: 10,
-                                                symbolSize: 10,
-                                                symbolShape: "circle",
-                                            }]}
+                                            legends={[
+                                                {
+                                                    anchor: "bottom",
+                                                    direction: "row",
+                                                    translateY: 50,
+                                                    itemWidth: 90,
+                                                    itemHeight: 18,
+                                                    itemsSpacing: 10,
+                                                    symbolSize: 10,
+                                                    symbolShape: "circle",
+                                                },
+                                            ]}
                                         />
                                     </div>
                                 </MDBCardBody>
@@ -605,11 +656,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                         In quanto tempo puoi raggiungere il tuo obiettivo?
                                     </span>
                                 </div>
-                                <small className="text-white-50">  Simulazioni basate sul tuo capitale iniziale, sui tuoi versamenti mensili e su rendimenti annui
+                                <small className="text-white-50">
+                                    Simulazioni basate sul tuo capitale iniziale, sui tuoi versamenti mensili e su rendimenti annui
                                     ipotetici.
                                 </small>
-
-
                             </div>
 
                             <MDBCardBody className="p-3 p-md-4">
@@ -786,23 +836,21 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                     <small className="text-white-50">
                                         Simulazioni basate sul tuo capitale iniziale, sui tuoi versamenti mensili e su rendimenti annui
                                     </small>
-
                                 </div>
 
-                                {changeDetect &&
-                                    <MDBBtn
-                                        onClick={() => savePresetsFuture()}
-                                        className='me-1' color='success'>
+                                {changeDetect && (
+                                    <MDBBtn onClick={() => savePresetsFuture()} className="me-1" color="success" disabled={saving}>
                                         <MDBIcon className="me-2" far icon="save" />
-                                        salva
+                                        {saving ? "salvando..." : "salva"}
                                     </MDBBtn>
-
-                                }
-
+                                )}
                             </div>
 
                             <MDBCardBody className="p-3 p-md-4">
-                                <MDBCard className="mx-0 mx-md-2" style={{ border: "#BEDBFF solid 1px", backgroundColor: "rgb(240, 246, 255)" }}>
+                                <MDBCard
+                                    className="mx-0 mx-md-2"
+                                    style={{ border: "#BEDBFF solid 1px", backgroundColor: "rgb(240, 246, 255)" }}
+                                >
                                     <MDBCardBody>
                                         <MDBRow className="align-items-start g-3" style={{ lineHeight: 1.7 }}>
                                             <MDBCol xs="12" md="3">
@@ -812,8 +860,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                     type="number"
                                                     value={capital}
                                                     onChange={(e) => {
-                                                        setCapital(e.target.value)
-                                                        setChangeDetect(true)
+                                                        setCapital(e.target.value);
+                                                        setChangeDetect(true);
                                                     }}
                                                     style={{ background: "white" }}
                                                 />
@@ -827,33 +875,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                     value={monthly}
                                                     onChange={(e) => {
                                                         setMonthly(e.target.value);
-                                                        setChangeDetect(true)
+                                                        setChangeDetect(true);
                                                     }}
                                                     style={{ background: "white" }}
                                                 />
                                             </MDBCol>
-
-                                            {/* <MDBCol xs="12" md="6">
-                                                <label className="form-label fw-bold" style={{ color: "#21384A", fontWeight: 700 }}>
-                                                    Tipo di obiettivo
-                                                </label>
-                                                <div className="d-flex flex-wrap align-items-center gap-3">
-                                                    <div className="d-flex align-items-center gap-2">
-                                                        <MDBCheckbox name="option1" id="option1" checked={options.option1} onChange={handleChange} />
-                                                        <label className="mb-0" htmlFor="option1">Capitale</label>
-                                                    </div>
-
-                                                    <div className="d-flex align-items-center gap-2">
-                                                        <MDBCheckbox name="option2" id="option2" checked={options.option2} onChange={handleChange} />
-                                                        <label className="mb-0" htmlFor="option2">Rendita mensile</label>
-                                                    </div>
-
-                                                    <div className="d-flex align-items-center gap-2">
-                                                        <MDBCheckbox name="option3" id="option3" checked={options.option3} onChange={handleChange} />
-                                                        <label className="mb-0" htmlFor="option3">Anni</label>
-                                                    </div>
-                                                </div>
-                                            </MDBCol> */}
 
                                             <MDBCol xs="12" md="6">
                                                 <div style={{ color: "#21384A", fontWeight: 700 }}>Capitale obiettivo (€)</div>
@@ -892,9 +918,27 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
 
                                 <MDBRow className="g-3 mt-1 mb-3">
                                     {[
-                                        { title: "Banca / assicurazioni", colorBorder: "danger", pillBg: "#E11D2E", pill: "2% annuo", note: "Obiettivo in circa 19 anni" },
-                                        { title: "Autodidatta", colorBorder: "warning", pillBg: "rgb(228 161 25)", pill: "5% annuo", note: "Obiettivo in circa 14 anni" },
-                                        { title: "Strategie MIPAI", colorBorder: "success", pillBg: "#007A55", pill: "10% annuo", note: "Obiettivo in circa 11 anni" },
+                                        {
+                                            title: "Banca / assicurazioni",
+                                            colorBorder: "danger",
+                                            pillBg: "#E11D2E",
+                                            pill: "2% annuo",
+                                            note: "Obiettivo in circa 19 anni",
+                                        },
+                                        {
+                                            title: "Autodidatta",
+                                            colorBorder: "warning",
+                                            pillBg: "rgb(228 161 25)",
+                                            pill: "5% annuo",
+                                            note: "Obiettivo in circa 14 anni",
+                                        },
+                                        {
+                                            title: "Strategie MIPAI",
+                                            colorBorder: "success",
+                                            pillBg: "#007A55",
+                                            pill: "10% annuo",
+                                            note: "Obiettivo in circa 11 anni",
+                                        },
                                     ].map((c) => (
                                         <MDBCol key={c.title} xs="12" md="4" className="d-flex">
                                             <MDBCard
@@ -939,51 +983,43 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                             if (serie.id === "Autodidatta") return "#E4A119";
                                             return "#E11D2E";
                                         }}
-
-                                        // ✅ interacción / tooltip
                                         useMesh={true}
                                         enableTouchCrosshair={true}
-                                        enableSlices="x"   // opcional pero MUY útil con varias líneas (hover por “columna”)
-
-                                        // ✅ puntos (mejoran el hover visual)
+                                        enableSlices="x"
                                         pointSize={4}
                                         pointColor={{ theme: "background" }}
                                         pointBorderColor={{ from: "seriesColor" }}
-
-                                        // ✅ animación
                                         animate={true}
                                         motionConfig="gentle"
-
                                         markers={[
-                                            // ✅ línea horizontal objetivo
                                             ...(target
-                                                ? [{
-                                                    axis: "y" as const,
-                                                    value: target,
-                                                    lineStyle: { strokeWidth: 1, strokeDasharray: "6 6" },
-                                                    legend: `Obiettivo: ${new Intl.NumberFormat("it-IT").format(target)} €`,
-                                                    legendPosition: "top-left" as const,
-                                                }]
+                                                ? [
+                                                    {
+                                                        axis: "y" as const,
+                                                        value: target,
+                                                        lineStyle: { strokeWidth: 1, strokeDasharray: "6 6" },
+                                                        legend: `Obiettivo: ${new Intl.NumberFormat("it-IT").format(target)} €`,
+                                                        legendPosition: "top-left" as const,
+                                                    },
+                                                ]
                                                 : []),
-
-                                            // ✅ líneas verticales donde cada estrategia lo alcanza
                                             ...reachYears.map((r) => ({
                                                 axis: "x" as const,
-                                                value: r.year, // como tu xScale es point, esto debe ser string (ej "2034")
+                                                value: r.year,
                                                 lineStyle: {
                                                     strokeWidth: 2,
                                                     strokeDasharray: "4 4",
                                                     stroke:
-                                                        r.id === "Strategie MIPAI" ? "#007A55" :
-                                                            r.id === "Autodidatta" ? "#E4A119" :
-                                                                "#E11D2E",
+                                                        r.id === "Strategie MIPAI"
+                                                            ? "#007A55"
+                                                            : r.id === "Autodidatta"
+                                                                ? "#E4A119"
+                                                                : "#E11D2E",
                                                 },
-
                                                 legendPosition: "bottom" as const,
                                             })),
                                         ]}
                                     />
-
                                 </div>
 
                                 <div className="mb-3 mt-3 text-center" style={{ fontSize: 12 }}>
@@ -1013,20 +1049,24 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                         <MDBIcon fas icon="chart-line" className="me-2 fs-4 text-white" />
                                         <span className="fs-6 fs-md-5 fw-bold text-white">Simulatore interessi composti</span>
                                     </div>
-                                    <small className="text-white-50">Gioca con i numeri per costruire il tuo piano: modifica capitale iniziale, contributo e obiettivo.</small>
+                                    <small className="text-white-50">
+                                        Gioca con i numeri per costruire il tuo piano: modifica capitale iniziale, contributo e obiettivo.
+                                    </small>
                                 </div>
-                                {changeDetect &&
-                                    <MDBBtn
-                                        onClick={() => savePresetsBacktesting()}
-                                        className='me-1' color='success'>
+
+                                {changeDetect && (
+                                    <MDBBtn onClick={() => savePresetsBacktesting()} className="me-1" color="success" disabled={saving}>
                                         <MDBIcon className="me-2" far icon="save" />
-                                        salva
+                                        {saving ? "salvando..." : "salva"}
                                     </MDBBtn>
-                                }
+                                )}
                             </div>
 
                             <MDBCardBody className="p-3 p-md-4">
-                                <MDBCard className="mx-0 mx-md-2 mb-3" style={{ border: "#BEDBFF solid 1px", backgroundColor: "rgb(240, 246, 255)" }}>
+                                <MDBCard
+                                    className="mx-0 mx-md-2 mb-3"
+                                    style={{ border: "#BEDBFF solid 1px", backgroundColor: "rgb(240, 246, 255)" }}
+                                >
                                     <MDBCardBody>
                                         <MDBRow className="align-items-start g-3">
                                             <MDBCol xs="12" md="3">
@@ -1140,10 +1180,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                     <ResponsiveLine
                                         data={backtestData}
                                         margin={{ top: 20, right: 20, bottom: isMobile ? 70 : 80, left: 70 }}
-
                                         xScale={{ type: "point" }}
                                         yScale={{ type: "linear", min: "auto", max: "auto", stacked: false }}
-
                                         colors={() => "#155DFC"}
                                         lineWidth={2}
                                         pointSize={3}
@@ -1153,10 +1191,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                         areaOpacity={0.05}
                                         useMesh={true}
                                         enableSlices="x"
-
-
-
-
                                     />
                                 </div>
 
@@ -1179,7 +1213,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                     </MDBAlert>
 
                                     <span className="text-center" style={{ fontSize: 14 }}>
-                                        Questa simulazione ti mostra l&apos;effetto del tempo: <strong>iniziare prima fa una grande differenza.</strong>
+                                        Questa simulazione ti mostra l&apos;effetto del tempo:{" "}
+                                        <strong>iniziare prima fa una grande differenza.</strong>
                                     </span>
 
                                     <hr className="w-100" />

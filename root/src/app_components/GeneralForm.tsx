@@ -205,11 +205,24 @@ export function GeneralForm<T extends Record<string, any>, P extends Record<stri
     externalResolve.current = undefined;
 
     // mostro alert…
+    const msg = (newMessage.message ?? "").trim();
+
+    const defaultSuccess =
+      effectiveMode === "update"
+        ? "Modifiche salvate correttamente."
+        : "Salvato correttamente.";
+
+    const safeMsg =
+      msg === "" || msg.toLowerCase() === "success"
+        ? (newMessage.success ? defaultSuccess : "Operazione non riuscita.")
+        : msg;
+
     newMessage.success
-      ? ((props.alertProps?.show?.success ?? true) ?
-        showAlertSuccess(newMessage.message, props.alertProps?.position?.success) : hideAlert())
+      ? ((props.alertProps?.show?.success ?? true)
+        ? showAlertSuccess(safeMsg, props.alertProps?.position?.success)
+        : hideAlert())
       : ((props.alertProps?.show?.error ?? true) &&
-        showAlertError(newMessage.message, props.alertProps?.position?.error));
+        showAlertError(safeMsg, props.alertProps?.position?.error));
 
     // **resetto** lo stato, così il vecchio messaggio non tornerà  
     setNewMessage(null);

@@ -325,6 +325,14 @@ const LoginForm: React.FC = () => {
                   <MDBBtn type="submit" className="btn btn-primary btn-lg btn-block">
                     Entra in VCF
                   </MDBBtn>
+                  <MDBBtn
+                    type="button"
+                    className="btn btn-lg btn-block mt-2"
+                    style={{ backgroundColor: "rgba(33, 56, 74, 1)", color: "white" }}
+                    onClick={() => navigate("/quiz")}
+                  >
+                    Vai al Quiz
+                  </MDBBtn>
                 </MDBValidation>
               ) : (
                 <MDBValidation noValidate isValidated={validated} onSubmit={handleForgotSubmit} className="row g-3">

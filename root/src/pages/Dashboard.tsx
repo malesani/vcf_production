@@ -22,7 +22,7 @@ import { activateAccountRequest } from "../auth_module/SingupFunctions";
 import { useIsMobile } from "../app_components/ResponsiveModule";
 
 // qua i presets
-import { getPresets } from "../api_module_v1/PresetDataRequest";
+import { getPresets, patchPresets } from "../api_module_v1/PresetDataRequest";
 
 interface DashboardProps {
     userName?: string;
@@ -143,6 +143,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
     const isMobile = useIsMobile(992);
     const [perfil, setPerfil] = useState<Perfil>("tranquilo");
     const [invest, setInvest] = useState<number>(0);
+    const [changeDetect, setChangeDetect] = useState<boolean>(false);
 
     // ===== Backtest =====
     const [backtestData, setBacktestData] = useState<LineSerie[]>([])
@@ -187,6 +188,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
     const [monthly, setMonthly] = useState("");
     const [years, setYears] = useState("");
     const [objCapital, setObjCapital] = useState("");
+
     const [autoYears, setAutoYears] = useState(false);
 
     const [lineData, setLineData] = useState<LineSerie[]>([]);
@@ -261,7 +263,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
 
         setPipeData(safe);
     }, [capital, invest]);
-    
+
     const target = parseNum(objCapital);
 
     const reachYears = useMemo(() => {
@@ -365,7 +367,61 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
             });
     }, []);
 
+    async function savePresetsFuture() {
+        const payload = {
+            quiz_version: "1.1",
+            patch: {
+                answers: {
+                    step_2: {
+                        question_uid: "step_2",
+                        available_savings: capital,
+                    },
+                    step_3: {
+                        question_uid: "step_3",
+                        target_years: years,
+                        target_capital: objCapital,
+                        monthly_invest_capacity: monthly
+                    }
+                },
+            },
+        };
 
+        const { response, data } = await patchPresets(payload);
+
+        if (!response.success) {
+            throw new Error(response.message ?? "presets.error");
+        }
+        setChangeDetect(false);
+
+    }
+
+    async function savePresetsBacktesting() {
+        const payload = {
+            quiz_version: "1.1",
+            patch: {
+                answers: {
+                    step_2: {
+                        question_uid: "step_2",
+                        available_savings: capitalBacktesting,
+                    },
+                    step_3: {
+                        question_uid: "step_3",
+                        target_years: pastYears,
+                        monthly_invest_capacity: monthlyBacktesting
+                    }
+                },
+            },
+        };
+
+        const { response, data } = await patchPresets(payload);
+
+        if (!response.success) {
+            throw new Error(response.message ?? "presets.error");
+        }
+
+        setChangeDetect(false);
+
+    }
     return (
         <>
             {banner && (
@@ -714,7 +770,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                     <MDBCol xs="12">
                         <MDBCard className="d-flex flex-column border-0">
                             <div
-                                className="p-3 p-md-4"
+                                className="p-3 p-md-4 d-flex justify-content-between align-items-center"
                                 style={{
                                     backgroundColor: "rgb(38, 53, 80)",
                                     color: "white",
@@ -722,13 +778,26 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                     borderTopLeftRadius: "0.5rem",
                                 }}
                             >
-                                <div className="d-flex align-items-center">
-                                    <MDBIcon fas icon="chart-line" className="me-2 fs-4 text-white" />
-                                    <span className="fs-6 fs-md-5 fw-bold text-white">Simulatore interessi composti</span>
+                                <div>
+                                    <div className="d-flex align-items-center">
+                                        <MDBIcon fas icon="chart-line" className="me-2 fs-4 text-white" />
+                                        <span className="fs-6 fs-md-5 fw-bold text-white">Simulatore interessi composti</span>
+                                    </div>
+                                    <small className="text-white-50">
+                                        Simulazioni basate sul tuo capitale iniziale, sui tuoi versamenti mensili e su rendimenti annui
+                                    </small>
+
                                 </div>
-                                <small className="text-white-50">
-                                    Simulazioni basate sul tuo capitale iniziale, sui tuoi versamenti mensili e su rendimenti annui
-                                </small>
+
+                                {changeDetect &&
+                                    <MDBBtn
+                                        onClick={() => savePresetsFuture()}
+                                        className='me-1' color='success'>
+                                        <MDBIcon className="me-2" far icon="save" />
+                                        salva
+                                    </MDBBtn>
+
+                                }
 
                             </div>
 
@@ -742,7 +811,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                     label=""
                                                     type="number"
                                                     value={capital}
-                                                    onChange={(e) => setCapital(e.target.value)}
+                                                    onChange={(e) => {
+                                                        setCapital(e.target.value)
+                                                        setChangeDetect(true)
+                                                    }}
                                                     style={{ background: "white" }}
                                                 />
                                             </MDBCol>
@@ -753,12 +825,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                     label=""
                                                     type="number"
                                                     value={monthly}
-                                                    onChange={(e) => setMonthly(e.target.value)}
+                                                    onChange={(e) => {
+                                                        setMonthly(e.target.value);
+                                                        setChangeDetect(true)
+                                                    }}
                                                     style={{ background: "white" }}
                                                 />
                                             </MDBCol>
 
-                                            <MDBCol xs="12" md="6">
+                                            {/* <MDBCol xs="12" md="6">
                                                 <label className="form-label fw-bold" style={{ color: "#21384A", fontWeight: 700 }}>
                                                     Tipo di obiettivo
                                                 </label>
@@ -778,7 +853,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                         <label className="mb-0" htmlFor="option3">Anni</label>
                                                     </div>
                                                 </div>
-                                            </MDBCol>
+                                            </MDBCol> */}
 
                                             <MDBCol xs="12" md="6">
                                                 <div style={{ color: "#21384A", fontWeight: 700 }}>Capitale obiettivo (€)</div>
@@ -925,7 +1000,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                     <MDBCol xs="12">
                         <MDBCard className="d-flex flex-column border-0">
                             <div
-                                className="p-3 p-md-4"
+                                className="p-3 p-md-4 d-flex justify-content-between align-items-center"
                                 style={{
                                     backgroundColor: "rgb(38, 53, 80)",
                                     color: "white",
@@ -933,11 +1008,21 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                     borderTopLeftRadius: "0.5rem",
                                 }}
                             >
-                                <div className="d-flex align-items-center">
-                                    <MDBIcon fas icon="chart-line" className="me-2 fs-4 text-white" />
-                                    <span className="fs-6 fs-md-5 fw-bold text-white">Simulatore interessi composti</span>
+                                <div>
+                                    <div className="d-flex align-items-center">
+                                        <MDBIcon fas icon="chart-line" className="me-2 fs-4 text-white" />
+                                        <span className="fs-6 fs-md-5 fw-bold text-white">Simulatore interessi composti</span>
+                                    </div>
+                                    <small className="text-white-50">Gioca con i numeri per costruire il tuo piano: modifica capitale iniziale, contributo e obiettivo.</small>
                                 </div>
-                                <small className="text-white-50">Gioca con i numeri per costruire il tuo piano: modifica capitale iniziale, contributo e obiettivo.</small>
+                                {changeDetect &&
+                                    <MDBBtn
+                                        onClick={() => savePresetsBacktesting()}
+                                        className='me-1' color='success'>
+                                        <MDBIcon className="me-2" far icon="save" />
+                                        salva
+                                    </MDBBtn>
+                                }
                             </div>
 
                             <MDBCardBody className="p-3 p-md-4">
@@ -950,7 +1035,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                     label=""
                                                     type="number"
                                                     value={capitalBacktesting}
-                                                    onChange={(e) => setCapitalBacktesting(e.target.value)}
+                                                    onChange={(e) => {
+                                                        setCapitalBacktesting(e.target.value);
+                                                        setChangeDetect(true);
+                                                    }}
                                                     style={{ background: "white" }}
                                                 />
                                             </MDBCol>
@@ -961,7 +1049,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                     label=""
                                                     type="number"
                                                     value={monthlyBacktesting}
-                                                    onChange={(e) => setMonthlyBacktesting(e.target.value)}
+                                                    onChange={(e) => {
+                                                        setMonthlyBacktesting(e.target.value);
+                                                        setChangeDetect(true);
+                                                    }}
                                                     style={{ background: "white" }}
                                                 />
                                             </MDBCol>
@@ -974,7 +1065,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                     min="1"
                                                     max="40"
                                                     value={pastYears}
-                                                    onChange={(e) => setPastYears((e.target as HTMLInputElement).value)}
+                                                    onChange={(e) => {
+                                                        setPastYears((e.target as HTMLInputElement).value);
+                                                        setChangeDetect(true);
+                                                    }}
                                                 />
                                             </MDBCol>
                                         </MDBRow>

@@ -29,9 +29,9 @@ export const questions: QstSection[] = [
     {
         question_uid: "step_1",
         icon: "cog",
-        name: "Step 1",
-        title: "",
-        description: "",
+        name: "Situazione attuale",
+        title: "A che punto sei oggi con i tuoi soldi?",
+        description: "Raccontaci come gestisci oggi risparmi e investimenti.",
         options: [
             {
                 answer_uid: "struggling_to_save",
@@ -69,9 +69,9 @@ export const questions: QstSection[] = [
     {
         question_uid: "step_2",
         icon: "user",
-        name: "Step 2",
-        title: "La tua situazione",
-        description: "",
+        name: "Dati personali",
+        title: "Parliamo della tua situazione economica",
+        description: "Queste informazioni ci aiutano a capire cosa è realistico per te.",
         options: [
             { field_key: "age", label: "Età", icon: "user" },
             { field_key: "monthly_net_income", label: "Reddito netto mensile (€)", icon: "hand-holding-usd" },
@@ -91,9 +91,9 @@ export const questions: QstSection[] = [
     {
         question_uid: "step_3",
         icon: "chart-bar",
-        name: "Step 3",
-        title: "Obiettivo",
-        description: "",
+        name: "Obiettivi",
+        title: "Dove vuoi arrivare?",
+        description: "Definiamo insieme i tuoi obiettivi finanziari.",
         options: [
             // 3 campi numerici
             { field_key: "target_capital", label: "Capitale obiettivo (€)", icon: "chart-bar" },

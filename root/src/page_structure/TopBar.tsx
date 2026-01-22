@@ -107,7 +107,7 @@ const TopBar: React.FC<TopBarProps> = ({ logoImg = '', appState, setAppState, to
                 <MDBDropdownMenu className="z-index: 2000;">
                   <MDBDropdownItem header>Gestione Utente</MDBDropdownItem>
                   <MDBDropdownItem link onClick={() => navigate('/user_profile', { replace: true })}>
-                    My profile
+                    Il mio profilo
                   </MDBDropdownItem>
                   <MDBDropdownItem link className="bg-warning" onClick={handleLogout}>
                     Logout

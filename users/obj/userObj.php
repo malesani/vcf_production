@@ -46,7 +46,7 @@ class userObj {
     public function set_userInfo(array $newUserData): array {
         $user_uid = $this->user_data['user_uid'];
 
-        $required_parameters = [ 'email', 'first_name', 'last_name', 'phone' ];
+        $required_parameters = ['first_name', 'last_name', 'phone' ];
         $allKeysSet = true;
         $missing_keys = [];
         foreach ($required_parameters as $key) {

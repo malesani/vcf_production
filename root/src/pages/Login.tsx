@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   MDBContainer,
   MDBRow,
@@ -47,6 +47,8 @@ const LoginForm: React.FC = () => {
 
   const activationToken = params.get("activation_token") ?? "";
 
+  const activationOnceRef = useRef<string | null>(null);
+
   // già autenticato con una sola azienda => dashboard
   useEffect(() => {
     if (isAuthenticated && companiesData.length <= 1) {
@@ -70,32 +72,39 @@ const LoginForm: React.FC = () => {
   useEffect(() => {
     if (!activationToken) return;
 
+    // ✅ guard: evita doppie chiamate (StrictMode dev) e anche re-run col token uguale
+    if (activationOnceRef.current === activationToken) return;
+    activationOnceRef.current = activationToken;
+
+    let cancelled = false;
+
     (async () => {
       try {
         setBusy(true);
 
-        // ✅ payload corretto: token string
-        const { response } = await activateAccountRequest({ token: activationToken });
+        const { response, data } = await activateAccountRequest({ token: activationToken });
 
         if (response.success) {
-          // signup.activation.success / already_done ecc...
-          const msg = response.message;
+          // ✅ precompila email con quella restituita dal backend
+          if (data?.email) {
+            email.handleEmailChange({
+              target: { value: data.email, setCustomValidity: (_: string) => { } }
+            } as React.ChangeEvent<HTMLInputElement>);
+          }
 
+          const msg = response.message;
           if (msg === "signup.activation.already_done") {
             setBanner({ type: "success", text: "Account già attivato, effettua il login." });
           } else {
             setBanner({ type: "success", text: "Il tuo account è stato attivato: inserisci la password per accedere." });
           }
-
-          // (opzionale ma consigliato) pulisci la query per non riattivare al refresh
-          // navigate("/login", { replace: true });
-
         } else {
           setBanner({
             type: "error",
-            text: response.message === "signup.activation.invalid"
-              ? "Link di attivazione non valido o scaduto."
-              : (response.message || "Errore durante l’attivazione account.")
+            text:
+              response.message === "signup.activation.invalid"
+                ? "Link di attivazione non valido o scaduto."
+                : response.message || "Errore durante l’attivazione account."
           });
         }
       } catch (e) {
@@ -105,7 +114,7 @@ const LoginForm: React.FC = () => {
         setBusy(false);
       }
     })();
-  }, [activationToken]);
+  }, [activationToken]); // (poi aggiungi email se ti serve evitare warning)
 
 
   // Banner: error codes + pwd_reset + activated. Da mettere possibilmente in una gestione unica (to be decided)
@@ -153,7 +162,7 @@ const LoginForm: React.FC = () => {
   }, [params, pwdResetFlag, justActivated]);
 
   const title = useMemo(
-    () => (mode === "login" ? "Sign into your account" : "Recover your password"),
+    () => (mode === "login" ? "Accedi al tuo account" : "Recupera password"),
     [mode]
   );
 
@@ -220,7 +229,7 @@ const LoginForm: React.FC = () => {
 
       setBanner({
         type: "success",
-        text: "If this email exists in our system, you’ll receive a password reset link shortly."
+        text: "Se questa email esiste nel nostro sistema, riceverai a breve un link per reimpostare la password."
       });
     } catch (err) {
       console.error(err);
@@ -262,7 +271,7 @@ const LoginForm: React.FC = () => {
                   <MDBValidationItem feedback={email.emailFeedback} invalid={email.emailInvalid}>
                     <MDBInput
                       wrapperClass="form-outline mb-4"
-                      label="Email address"
+                      label="Indirizzo email"
                       id="login-email"
                       type="email"
                       size="lg"
@@ -296,7 +305,7 @@ const LoginForm: React.FC = () => {
                         onChange={(e) => setRememberMe(e.target.checked)}
                       />
                       <label className="form-check-label" htmlFor="login-remember">
-                        Remember me
+                        Ricordami
                       </label>
                     </div>
 
@@ -309,24 +318,24 @@ const LoginForm: React.FC = () => {
                         setValidated(false);
                       }}
                     >
-                      Forgot password?
+                      Hai dimenticato la password?
                     </button>
                   </div>
 
                   <MDBBtn type="submit" className="btn btn-primary btn-lg btn-block">
-                    Sign in
+                    Entra in VCF
                   </MDBBtn>
                 </MDBValidation>
               ) : (
                 <MDBValidation noValidate isValidated={validated} onSubmit={handleForgotSubmit} className="row g-3">
                   <p className="text-muted text-center">
-                    Enter your email. If it’s registered, we’ll send you a reset link.
+                    Inserisci il tuo indirizzo email. Se è registrato, ti invieremo un link per reimpostare la password.
                   </p>
 
                   <MDBValidationItem feedback={email.emailFeedback} invalid={email.emailInvalid}>
                     <MDBInput
                       wrapperClass="form-outline mb-4"
-                      label="Email address"
+                      label="Indirizzo email"
                       id="forgot-email"
                       type="email"
                       size="lg"
@@ -346,35 +355,26 @@ const LoginForm: React.FC = () => {
                         setValidated(false);
                       }}
                     >
-                      ⬅ Back to login
+                      ⬅ Torna al login
                     </button>
 
-                    <MDBBtn type="submit">Send reset link</MDBBtn>
+                    <MDBBtn type="submit">Invia link reset</MDBBtn>
                   </div>
                 </MDBValidation>
               )}
 
               {mode === "login" && (
                 <>
-                  <div className="divider d-flex justify-content-center align-items-center my-2">
-                    <p className="text-center fw-bold mx-3 mb-0 text-muted">OR</p>
-                  </div>
-
-                  <MDBBtn className="btn btn-primary btn-lg btn-block mb-2" color="secondary">
-                    <i className="fab fa-google me-2"></i>
-                    Continue with Google
-                  </MDBBtn>
-
                   <hr className="my-4" />
 
                   <p className="text-center mb-0">
-                    Don't have an account?{" "}
+                    Non hai ancora un account?{" "}
                     <a
                       onClick={() => navigate("/signup", { replace: true })}
                       className="link-info"
                       style={{ cursor: "pointer" }}
                     >
-                      Register here
+                      Registrati
                     </a>
                   </p>
                 </>

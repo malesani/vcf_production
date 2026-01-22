@@ -17,6 +17,7 @@ import {
 import { submitQuiz, startQuizDraft } from "../../api_module_v1/QuizRequest";
 import { useAuth } from "../../auth_module/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "../../app_components/ResponsiveModule";
 
 interface ProfilationFormProps {
     setProfilationForm: (value: boolean) => void;
@@ -27,6 +28,7 @@ const QUIZ_UID_KEY = "quiz_uid_v1";
 
 export const ProfilationForm: React.FC<ProfilationFormProps> = ({ setProfilationForm }) => {
     const { isAuthenticated, userInfo, refreshAuth } = useAuth();
+    const isMobile = useIsMobile(992);
 
     const navigate = useNavigate();
 
@@ -237,12 +239,12 @@ export const ProfilationForm: React.FC<ProfilationFormProps> = ({ setProfilation
 
             // ✅ redirect: dopo mail inviata vai a signup
             if (resp.data?.action === "email_sent") {
-                navigate("/signup", { replace: true });
+                navigate(`/signup?email=${encodeURIComponent(emailToSend)}&from_quiz=1`, { replace: true });
                 return;
             }
 
-            // fallback: comunque signup (per ora)
-            navigate("/signup", { replace: true });
+            // fallback: comunque signup
+            navigate(`/signup?email=${encodeURIComponent(emailToSend)}&from_quiz=1`, { replace: true });
         } catch (e) {
             console.error(e);
         } finally {
@@ -273,12 +275,13 @@ export const ProfilationForm: React.FC<ProfilationFormProps> = ({ setProfilation
                     }}
                 >
                     <div className="d-flex align-items-center">
-                        <span className="fs-2 fw-bold text-white">Il tuo obiettivo finanziario</span>
+                        <span className="fs-3 fw-bold text-white">Il tuo obiettivo finanziario</span>
                     </div>
-                    <span className="text-light fs-5">Dettaglio Globale Portafogli</span>
+
+                    <small className="text-white-50">Dettaglio Globale Portafogli</small>
                 </div>
 
-                <div className="p-5">
+                <div className={`${isMobile ? "py-4 px-4" : "py-5 px-5"}`}>
                     <General_ContentSwitcher switchMode="stepper" contents={contents} loadingFlags={loadingFlags} />
                 </div>
             </MDBCard>

@@ -10,6 +10,7 @@ import {
   MDBBtn,
   MDBIcon
 } from "mdb-react-ui-kit";
+import { useIsMobile } from "../../app_components/ResponsiveModule";
 
 export interface CustomSelectProps {
   multiple?: boolean;
@@ -92,7 +93,7 @@ export const Selectbox_Cards = forwardRef<HTMLDivElement, CustomSelectProps>(
     } as const;
     const size = cardProps.size ?? "md";
     const styles = sizeStyles[size];
-
+    const isMobile = useIsMobile(992);
     const colProps = Object.entries(gridConfig).reduce((acc, [bp, cols]) => {
       if (!cols) return acc;
       const width = Math.floor(12 / cols);
@@ -260,12 +261,14 @@ export const Selectbox_Cards = forwardRef<HTMLDivElement, CustomSelectProps>(
                 onClick={onSelect}
               >
                 {opt.secondaryText ? (<>
-                  <MDBCardBody className="d-flex align-items-center px-5 py-6">
-                    <div className="me-3 d-flex align-items-center justify-content-center" style={{background:"rgba(190, 219, 255, 1)", borderRadius:"10px", width:"40px", height:"40px"}}>
-                      <MDBIcon className="" icon={opt.icon} style={{ color: 'rgba(21, 93, 252, 1)' }}></MDBIcon>
-                    </div>
+                  <MDBCardBody className={`d-flex align-items-center ${!isMobile ? "px-5 py-6" : "px- py-6"}`}>
+                    {!isMobile &&
+                      <div className="me-3 d-flex align-items-center justify-content-center" style={{ background: "rgba(190, 219, 255, 1)", borderRadius: "10px", width: "40px", height: "40px" }}>
+                        <MDBIcon className="" icon={opt.icon} style={{ color: 'rgba(21, 93, 252, 1)' }}></MDBIcon>
+                      </div>
+                    }
                     <div className="d-flex flex-column ">
-                      <p className={`mb-0 ${styles.cardTitle}`}>{opt.text}</p>
+                      <p className={`mb-0 ${styles.cardTitle} ${isMobile ? "mb-2" : ""}`}>{opt.text}</p>
                       <p className="mb-0 text-muted">
                         {opt.secondaryText}
                       </p>

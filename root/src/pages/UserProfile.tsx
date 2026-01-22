@@ -13,8 +13,7 @@ const UserProfile = () => {
     const userFields: FieldConfig<APIUserInfo>[] = [
         { name: "first_name",   label: "Nome",              required: true, grid: { md: 6 } },
         { name: "last_name",    label: "Cognome",           required: true, grid: { md: 6 } },
-        { name: "email",        label: "Email",             type: "email", required: true, grid: { md: 8 } },
-        { name: "phone",        label: "Telefono",          type: "tel", grid: { md: 4 } }
+        { name: "phone",        label: "Telefono",          type: "tel", grid: { md: 6 } }
     ];
 
     const companyFields: FieldConfig<APICompanyInfo>[] = [
@@ -63,33 +62,6 @@ const UserProfile = () => {
                     fields={userFields}
                     getData={getUserInfo}
                     updateData={updateUserInfo}
-                    onSuccess={(updated) => console.log("Aggiornato:", updated)}  />
-            </MDBCard>
-        </MDBCol>
-
-        <MDBCol className="mb-3" md="12">
-            <MDBCard className="p-4 pb-2">
-                <CustomerInfoUpdateForm
-                    mode="update"
-                    title="Informazioni Aziendali B2B"
-                    icon="building"
-                    fields={customerB2BFields}
-                    params={{ customer_uid: 'odV0CRQu' }}
-                    getData={getCustomerB2BInfo}
-                    updateData={updateCustomerB2BInfo}
-                    onSuccess={(updated) => console.log("Aggiornato:", updated)}  />
-            </MDBCard>
-        </MDBCol>
-        
-        <MDBCol className="mb-3" md="12">
-            <MDBCard className="p-4 pb-2">
-                <GeneralForm<APICompanyInfo>
-                    mode="update"
-                    title="Informazioni Aziendali"
-                    icon="building"
-                    fields={companyFields}
-                    getData={getCompanyInfo}
-                    updateData={updateCompanyInfo}
                     onSuccess={(updated) => console.log("Aggiornato:", updated)}  />
             </MDBCard>
         </MDBCol>

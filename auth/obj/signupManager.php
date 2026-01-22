@@ -524,23 +524,23 @@ class signupManager extends signupManagerBase
                 ];
             }
 
-            // Hash del token raw (stesso algoritmo usato in fase di creazione)
             $tokenHash = hash('sha256', $tokenRaw);
 
-            // Cerco token valido e non usato
+            // ✅ prendo anche email dal token (dato che ce l'hai in tabella)
             $sql = "
-                SELECT
-                    token_uid,
-                    user_uid,
-                    token_hash,
-                    purpose,
-                    expires_at,
-                    used_at
-                FROM auth_signup_tokens
-                WHERE token_hash = :token_hash
-                AND purpose = :purpose
-                LIMIT 1
-            ";
+            SELECT
+                token_uid,
+                user_uid,
+                email,
+                token_hash,
+                purpose,
+                expires_at,
+                used_at
+            FROM auth_signup_tokens
+            WHERE token_hash = :token_hash
+              AND purpose = :purpose
+            LIMIT 1
+        ";
 
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([
@@ -557,17 +557,6 @@ class signupManager extends signupManagerBase
                 ];
             }
 
-            // già usato?
-            if (!empty($row['used_at'])) {
-                return [
-                    "success" => true,
-                    "message" => "signup.activation.already_done",
-                    "data"    => [
-                        "user_uid" => $row['user_uid']
-                    ]
-                ];
-            }
-
             // scaduto?
             if (!empty($row['expires_at'])) {
                 $expiresAt = strtotime((string)$row['expires_at']);
@@ -580,8 +569,13 @@ class signupManager extends signupManagerBase
                 }
             }
 
-            // Validazione minima: user esiste?
-            $stmtUser = $this->conn->prepare("SELECT user_uid, email FROM acl_users WHERE user_uid = :user_uid LIMIT 1");
+            // ✅ carico user (per validazione e fallback email)
+            $stmtUser = $this->conn->prepare("
+            SELECT user_uid, email
+            FROM acl_users
+            WHERE user_uid = :user_uid
+            LIMIT 1
+        ");
             $stmtUser->execute([':user_uid' => $row['user_uid']]);
             $user = $stmtUser->fetch(PDO::FETCH_ASSOC);
 
@@ -590,6 +584,26 @@ class signupManager extends signupManagerBase
                     "success" => false,
                     "message" => "signup.activation.invalid",
                     "error"   => "User not found for this token"
+                ];
+            }
+
+            // ✅ email preferita: token.email (se presente), altrimenti acl_users.email
+            $resolvedEmail = null;
+            if (!empty($row['email'])) {
+                $resolvedEmail = $row['email'];
+            } elseif (!empty($user['email'])) {
+                $resolvedEmail = $user['email'];
+            }
+
+            // già usato?
+            if (!empty($row['used_at'])) {
+                return [
+                    "success" => true,
+                    "message" => "signup.activation.already_done",
+                    "data"    => [
+                        "user_uid" => $row['user_uid'],
+                        "email"    => $resolvedEmail
+                    ]
                 ];
             }
 
@@ -607,16 +621,29 @@ class signupManager extends signupManagerBase
                 ':token_uid' => $row['token_uid']
             ]);
 
-            // Se vuoi essere ultra-sicuro: se non ha aggiornato nulla, era già usato in race condition
-            // (ma in quel caso rispondo comunque ok)
+            // Se 0 righe, significa che qualcuno l'ha consumato nel frattempo (race condition)
+            // In tal caso rispondiamo comunque "already_done" con email.
+            $updatedRows = $stmtUpd->rowCount();
+
             $this->conn->commit();
+
+            if ($updatedRows === 0) {
+                return [
+                    "success" => true,
+                    "message" => "signup.activation.already_done",
+                    "data"    => [
+                        "user_uid" => $row['user_uid'],
+                        "email"    => $resolvedEmail
+                    ]
+                ];
+            }
 
             return [
                 "success" => true,
                 "message" => "signup.activation.success",
                 "data"    => [
                     "user_uid" => $user['user_uid'],
-                    "email"    => $user['email']
+                    "email"    => $resolvedEmail
                 ]
             ];
         } catch (Exception $e) {

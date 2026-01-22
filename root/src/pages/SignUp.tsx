@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { MDBContainer, MDBRow, MDBCol, MDBCard, MDBSpinner } from "mdb-react-ui-kit";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -6,7 +7,18 @@ import { validateRInvitation, APIinviteCodeInfo } from "../auth_module/SingupFun
 import SignupForm_Invitation from "../app_components/SignupForm_Invitation";
 import { useLogos } from "../hooks/AssetsManager";
 
+type Banner = { type: "success" | "error"; text: string } | null;
+
 const SignUp: React.FC = () => {
+
+  const location = useLocation();
+  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+
+  const signupEmail = params.get("email") ?? "";
+  const fromQuiz = params.get("from_quiz") === "1";
+
+  const [banner, setBanner] = useState<Banner>(null);
+
   const { logo_default } = useLogos();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -16,6 +28,17 @@ const SignUp: React.FC = () => {
   const [inviteValidated, setInviteValidated] = useState(false);
   const [signUpError, setSignUpError] = useState<string>("");
   const [inviteInfo, setInviteInfo] = useState<APIinviteCodeInfo | null>(null);
+
+  useEffect(() => {
+    if (fromQuiz) {
+      setBanner({
+        type: "success",
+        text: "Grazie per aver compilato il quiz — completa la registrazione per salvare i risultati."
+      });
+    } else {
+      setBanner(null);
+    }
+  }, [fromQuiz]);
 
   // --- VALIDAZIONE TOKEN SOLO SE PRESENTE ---
   useEffect(() => {
@@ -48,13 +71,18 @@ const SignUp: React.FC = () => {
   }, [token]);
 
   const title = useMemo(() => {
-    if (token) return "Complete your registration";
-    return "Create your account";
+    if (token) return "Completa la registrazione";
+    return "Crea il tuo account";
   }, [token]);
 
   const prefilledEmail = useMemo(() => {
-    return inviteInfo?.sendToEmail || inviteInfo?.metadata?.email || undefined;
-  }, [inviteInfo]);
+    // priorità: invito -> quiz -> undefined
+    return (
+      inviteInfo?.sendToEmail ||
+      inviteInfo?.metadata?.email ||
+      (signupEmail ? signupEmail : undefined)
+    );
+  }, [inviteInfo, signupEmail]);
 
   return (
     <section className="vh-100">
@@ -74,6 +102,12 @@ const SignUp: React.FC = () => {
                 <img src={logo_default} style={{ width: 120 }} alt="logo" />
                 <h4 className="mt-1 mt-3 pb-1">{title}</h4>
               </div>
+
+              {banner && (
+                <div className={`alert alert-${banner.type === "success" ? "success" : "danger"} mb-3`}>
+                  {banner.text}
+                </div>
+              )}
 
               {inviteLoading ? (
                 <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 220 }}>

@@ -1,5 +1,5 @@
 import { requestFunction, requestResponse } from '../hooks/RequestFunction';
- 
+
 export interface APIUserInfo {
   user_uid: string;
   email: string;
@@ -8,24 +8,24 @@ export interface APIUserInfo {
   phone: string | null;
   quiz: number;
 }
- 
+
 // ✅ payload per UPDATE: NON include quiz
 export type UpdateUserInfoPayload = Omit<APIUserInfo, "quiz">;
- 
+
 type Base64String = string;
 export type APIUserInfoEnriched = APIUserInfo & {
   avatarB64?: Base64String;
   avatarUrl?: string;
 }
- 
+
 export interface UserInfoResponse {
   response: requestResponse;
   data?: APIUserInfo;
 }
- 
+
 export async function getUserInfo(): Promise<UserInfoResponse> {
   const response = await requestFunction('/users/api/user.php', 'GET', 'user_info', {});
- 
+
   let data: APIUserInfo | undefined;
   if (response.success && response.data && response.data.user_info) {
     data = response.data.user_info as APIUserInfo;
@@ -33,7 +33,7 @@ export async function getUserInfo(): Promise<UserInfoResponse> {
   }
   throw new Error(response.error || response.message || 'Request failed');
 }
- 
+
 export async function updateUserInfo(
   data: UpdateUserInfoPayload // ✅ qui
 ): Promise<UserInfoResponse> {
@@ -48,4 +48,3 @@ export async function updateUserInfo(
   }
   return { response };
 }
- 

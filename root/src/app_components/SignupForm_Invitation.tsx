@@ -31,9 +31,9 @@ const SignupForm_Invitation: React.FC<SignupFormInvitationProps> = ({ token, ema
     const emailLocked = useMemo(() => !!email && email.trim() !== "", [email]);
 
     const SignupInvitationFields: FieldConfig<SignupInvitationPayload>[] = [
-        { name: "first_name", label: "First name", required: true, type: "text", grid: { md: 6 } },
-        { name: "last_name", label: "Last name", required: true, type: "text", grid: { md: 6 } },
-        { name: "phone", label: "Phone", required: true, type: "tel", grid: { md: 12 } },
+        { name: "first_name", label: "Nome", required: true, type: "text", grid: { md: 6 } },
+        { name: "last_name", label: "Cognome", required: true, type: "text", grid: { md: 6 } },
+        { name: "phone", label: "Telefono", required: true, type: "tel", grid: { md: 12 } },
 
         {
             name: "password",
@@ -48,7 +48,7 @@ const SignupForm_Invitation: React.FC<SignupFormInvitationProps> = ({ token, ema
         },
         {
             name: "repassword",
-            label: "Re-Password",
+            label: "Conferma Password",
             required: true,
             type: "password",
             grid: { md: 12 },
@@ -67,7 +67,7 @@ const SignupForm_Invitation: React.FC<SignupFormInvitationProps> = ({ token, ema
 
         const safeEmail = (email ?? "").trim();
         const finalEmail = (emailLocked ? safeEmail : emailValue.trim());
-        
+
         if (!finalEmail) {
             const msg = "Email obbligatoria.";
             setBanner({ type: "error", text: msg });
@@ -124,6 +124,9 @@ const SignupForm_Invitation: React.FC<SignupFormInvitationProps> = ({ token, ema
                     createData={completeSignup}
                     onSuccess={(created) => {
                         console.log("Signup OK:", created);
+                    }}
+                    createBtnProps={{
+                        label: "Registrati",
                     }}
                 />
             </MDBCol>

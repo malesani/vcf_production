@@ -19,7 +19,7 @@ const publicRoutes = [
   {
     path: '/quiz',
     element: (
-      <Skeleton noNavbar noSideNav>
+      <Skeleton noNavbar noSideNav useSimpleTopbar>
         <Profilation />
       </Skeleton>
     )

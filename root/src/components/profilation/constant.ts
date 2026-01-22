@@ -7,6 +7,7 @@ export interface QstOption {
 
     label: string;
     description?: string;
+    helperText?: string;
     multiple?: boolean;
     maxSelections?: number;
     icon?: string;
@@ -77,7 +78,13 @@ export const questions: QstSection[] = [
             { field_key: "monthly_expenses", label: "Spese mensili stimate (€)", icon: "hand-holding-usd" },
             { field_key: "available_savings", label: "Risparmi disponibili (€)", icon: "hand-holding-usd" },
             { field_key: "invested_capital", label: "Capitale già investito (€)", icon: "hand-holding-usd" },
-            { field_key: "monthly_savings_capacity", label: "Quanto riesci a mettere da parte ogni mese? (€)", icon: "hand-holding-usd" },
+            {
+                field_key: "monthly_savings_capacity",
+                label: "Quanto riesci a mettere da parte ogni mese? (€)",
+                icon: "hand-holding-usd",
+                helperText:
+                    "Indica quanto riesci normalmente ad accantonare ogni mese, anche se i soldi rimangono fermi sul conto."
+            },
         ],
     },
 
@@ -90,13 +97,13 @@ export const questions: QstSection[] = [
         options: [
             // 3 campi numerici
             { field_key: "target_capital", label: "Capitale obiettivo (€)", icon: "chart-bar" },
-            { field_key: "target_years", label: "In quanti anni vuoi raggiungere l'obiettivo? *", icon: "chart-bar" },
+            { field_key: "target_years", label: "In quanti anni vuoi raggiungere l'obiettivo?", icon: "chart-bar" },
             { field_key: "monthly_invest_capacity", label: "Quanto potresti arrivare a investire al mese? (€, opzionale)", icon: "chart-bar" },
 
             // eventuale “other” select (se ti serve davvero mantenerlo)
-            { answer_uid: "dynamic", label: "Dinamica", description: "Illuminazione interattiva e variabile", icon: "chart-bar" },
-            { answer_uid: "accent", label: "Accent", description: "Focus su elementi specifici", icon: "chart-bar" },
-            { answer_uid: "architectural", label: "Architettonica", description: "Integrata nella struttura", icon: "chart-bar" },
+            { answer_uid: "goal_target_capital", label: "Raggiungere un capitale obiettivo", description: "Accumula un importo specifico nel tempo", icon: "bullseye" },
+            { answer_uid: "goal_monthly_income", label: "Generare una rendita mensile", description: "Creare un flusso di reddito passivo costante", icon: "chart-line" },
+            { answer_uid: "goal_wealth_growth", label: "Far crescere il mio patrimonio nel tempo", description: "Investi per aumentare il valore complessivo", icon: "bullseye" },
         ],
     },
 ];

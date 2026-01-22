@@ -1,9 +1,10 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { requestResponse, DataResponse } from "../../hooks/RequestFunction";
 
 import { GeneralForm, SelectData } from "../../app_components/GeneralForm";
-import { QstSection } from "./constant";
+import { QstSection, QstOption } from "./constant";
 import { MDBCard } from "mdb-react-ui-kit";
+import { useIsMobile } from "../../app_components/ResponsiveModule";
 
 interface SectionFormProps {
   section: QstSection;
@@ -28,6 +29,10 @@ export const SectionForm: React.FC<SectionFormProps> = ({
   setProfilationForm,
 }) => {
   const question_uid = section.question_uid;
+  const isMobile = useIsMobile(992);
+  const [obiettivo, setObiettivo] = useState<string>("");
+  const [timeObiettivo, setTimeObiettivo] = useState<string>("");
+  const [monthInvest, setMonthInvest] = useState<string>("");
 
   // mock get
   async function getAnswerDataMock(args: { question_uid: string }): Promise<DataResponse<APIAnswerData>> {
@@ -57,7 +62,7 @@ export const SectionForm: React.FC<SectionFormProps> = ({
     const returned = { project_uid: "", ...payload };
 
     return {
-      response: { success: true, data: { answer_data: returned }, message: "test message" },
+      response: { success: true, data: { answer_data: returned }, message: "success" },
       data: returned,
     };
   }
@@ -70,6 +75,18 @@ export const SectionForm: React.FC<SectionFormProps> = ({
     [onRegisterSubmit]
   );
 
+  // helper: costruisce l'extraElements per helperText
+  const helperExtra = (opt: QstOption) => {
+    if (!opt.helperText) return [];
+    return [
+      {
+        position: "after" as const,
+        grid: { size: 12 },
+        element: <div className="form-text text-muted mt-1">{opt.helperText}</div>,
+      },
+    ];
+  };
+
   // ============================
   // STEP 3 (mix: number fields + optional selectbox)
   // ============================
@@ -79,7 +96,7 @@ export const SectionForm: React.FC<SectionFormProps> = ({
 
     const selectData: SelectData[] = selectOptions.map((opt) => ({
       icon: opt.icon,
-      value: opt.answer_uid!, // safe: filtrato sopra
+      value: opt.answer_uid!, // safe
       text: opt.label,
       secondaryText: opt.description,
     }));
@@ -88,71 +105,81 @@ export const SectionForm: React.FC<SectionFormProps> = ({
       // selectbox SOLO se esistono opzioni con answer_uid
       ...(selectOptions.length
         ? [
-            {
-              name: "step_3_other",
-              label: "Seleziona un’opzione",
-              required: true,
-              grid: { size: 12 },
-              type: "selectbox" as const,
-              customElementKey: "cards" as const,
-              options: selectData,
-              properties: {
-                multiple: false,
-                showSummaryPills: false,
-                hideChoseSomething: true,
-                gridConfig: { md: 1, xl: 1, xxl: 1 },
-              },
+          {
+            name: "step_3_other",
+            label: "Seleziona un’opzione",
+            required: true,
+            grid: { size: 12 },
+            type: "selectbox" as const,
+            customElementKey: "cards" as const,
+            options: selectData,
+            properties: {
+              multiple: false,
+              showSummaryPills: false,
+              hideChoseSomething: true,
+              gridConfig: { md: 1, xl: 1, xxl: 1 },
             },
-          ]
+          },
+        ]
         : []),
 
       // inputs numerici
-      ...fieldOptions.map((opt) => ({
-        name: opt.field_key!, // ✅ chiave “parlante” nel JSON
-        label: opt.label,
-        required: opt.field_key !== "monthly_invest_capacity", // opzionale
-        grid: { size: opt.field_key === "monthly_invest_capacity" ? 12 : 6 },
-        type: "number" as const,
-        extraElements:
-          opt.field_key === "monthly_invest_capacity"
+      ...fieldOptions.map((opt) => {
+        const isMonthlyInvest = opt.field_key === "monthly_invest_capacity";
+
+        // merge extra: helperText + (eventuale blocco speciale)
+        const extra = [
+          ...helperExtra(opt),
+          ...(isMonthlyInvest
             ? [
                 {
                   position: "after" as const,
                   grid: { md: 12 },
-                  element: (
-                    <>
-                      <div className="text-muted mb-4">
-                        Questa informazione ci aiuta a creare una strategia di investimento personalizzata
-                      </div>
-                      <MDBCard
-                        className="p-4 mb-4"
-                        style={{
-                          border: "3px solid rgba(190, 219, 255, 1)",
-                          backgroundColor: "rgba(240, 248, 255, 0.6)",
-                        }}
-                      >
-                        <h5>Riepilogo del tuo obiettivo</h5>
-                        <div className="d-flex justify-content-between flex-row gap-3 mt-3">
-                          <div>
-                            <div className="text-muted">Obiettivo</div>
-                            <div>1000</div>
-                          </div>
-                          <div>
-                            <div className="text-muted">Tempo</div>
-                            <div>15 anni</div>
-                          </div>
-                          <div>
-                            <div className="text-muted">Investimento mensile</div>
-                            <div>€ 500</div>
-                          </div>
-                        </div>
-                      </MDBCard>
-                    </>
-                  ),
+                  // element: (
+                  //   <>
+                  //     <div className="text-muted mb-4">
+                  //       Questa informazione ci aiuta a creare una strategia di investimento personalizzata
+                  //     </div>
+
+                  //     <MDBCard
+                  //       className="p-4 mb-4"
+                  //       style={{
+                  //         border: "3px solid rgba(190, 219, 255, 1)",
+                  //         backgroundColor: "rgba(240, 248, 255, 0.6)",
+                  //       }}
+                  //     >
+                  //       <h5>Riepilogo del tuo obiettivo</h5>
+                  //       <div className="d-flex justify-content-between flex-row gap-3 mt-3">
+                  //         <div>
+                  //           <div className="text-muted">Obiettivo</div>
+                  //           <div>1000</div>
+                  //         </div>
+                  //         <div>
+                  //           <div className="text-muted">Tempo</div>
+                  //           <div>15 anni</div>
+                  //         </div>
+                  //         <div>
+                  //           <div className="text-muted">Investimento mensile</div>
+                  //           <div>€ 500</div>
+                  //         </div>
+                  //       </div>
+                  //     </MDBCard>
+                  //   </>
+                  // ),
                 },
               ]
-            : undefined,
-      })),
+            : []),
+        ];
+
+        return {
+          name: opt.field_key!, // ✅ chiave “parlante” nel JSON
+          label: opt.label,
+          required: opt.field_key !== "monthly_invest_capacity", // opzionale
+          grid: {size: !isMobile ? (opt.field_key === "monthly_invest_capacity" ? 12 : 6) : 12},
+          type: "number" as const,
+          extraElements: extra.length ? extra : undefined,
+        };
+      }),
     ];
 
     return (
@@ -191,12 +218,15 @@ export const SectionForm: React.FC<SectionFormProps> = ({
         key === "invested_capital" ||
         key === "monthly_savings_capacity";
 
+      const extra = helperExtra(opt);
+
       return {
-        name: key, // ✅ chiave “parlante” nel JSON
+        name: key,
         label: opt.label ?? `Campo ${index + 1}`,
         required: true,
-        grid: { size: key === "monthly_savings_capacity" ? 12 : 6 },
-        type: isNumber ? "number" : "text",
+        grid: { size: !isMobile ? (key === "monthly_savings_capacity" ? 12 : 6) : 12 },
+        type: isNumber ? ("number" as const) : ("text" as const),
+        extraElements: extra.length ? extra : undefined,
       };
     });
 
@@ -228,7 +258,7 @@ export const SectionForm: React.FC<SectionFormProps> = ({
     .filter((opt) => !!opt.answer_uid)
     .map((opt) => ({
       icon: opt.icon,
-      value: opt.answer_uid!, // safe: filtrato sopra
+      value: opt.answer_uid!, // safe
       text: opt.label,
       secondaryText: opt.description,
     }));
@@ -269,3 +299,5 @@ export const SectionForm: React.FC<SectionFormProps> = ({
     </div>
   );
 };
+
+export default SectionForm;

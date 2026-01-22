@@ -36,11 +36,8 @@ type Stat = { label: string; value: string };
 type LinePoint = { x: string; y: number };
 type LineSerie = { id: string; data: LinePoint[]; color: string };
 
-// ======= PIE =======
-const data2 = [
-    { id: "erlang", label: "Liquidita", value: 90, color: "hsl(108, 70%, 50%)" },
-    { id: "php", label: "Investiti", value: 441, color: "hsl(206, 70%, 50%)" },
-];
+// ======= TIPOS PARA NIVO PIPE =======
+type PieData = { id: string; label: string; value: number };
 
 // ======= HELPERS =======
 const parseNum = (v: string) => {
@@ -132,7 +129,7 @@ const buildPastSeries = (
 
     return [
         {
-            id: "Andamento di crescita per i passati " + Ypast + " anni",
+            id: "Andamento di crescita",
             color: "#155DFC",
             data,
         },
@@ -146,9 +143,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
     const isMobile = useIsMobile(992);
     const [perfil, setPerfil] = useState<Perfil>("tranquilo");
     const [invest, setInvest] = useState<number>(0);
-    // ===== Backtest =====
-    const [backtestData, setBacktestData] = useState<LineSerie[]>([]);
 
+    // ===== Backtest =====
+    const [backtestData, setBacktestData] = useState<LineSerie[]>([])
     const [pastYears, setPastYears] = useState("5");
     const [capitalBacktesting, setCapitalBacktesting] = useState("");
     const [monthlyBacktesting, setMonthlyBacktesting] = useState("");
@@ -194,6 +191,8 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
 
     const [lineData, setLineData] = useState<LineSerie[]>([]);
 
+    const [pipeData, setPipeData] = useState<PieData[]>([]);
+
     const [options, setOptions] = useState({
         option1: false,
         option2: false,
@@ -231,10 +230,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
         const P0 = parseNum(capital);
         const m = parseNum(monthly);
         const target = parseNum(objCapital);
-        const annual = 0.1;
+        const annual = 0.02;
         const neededYears = yearsToReachTarget(P0, m, target, annual, 40);
         setYears(String(neededYears));
     }, [autoYears, capital, monthly, objCapital]);
+
 
     useEffect(() => {
         const P0 = parseNum(capital);
@@ -243,6 +243,37 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
 
         setLineData(buildLineSeries(P0, m, Y));
     }, [capital, monthly, years]);
+
+    useEffect(() => {
+        const liquidita = Math.max(0, parseNum(capital));      // capital es string
+        const investiti = Math.max(0, Number(invest) || 0);    // invest es number
+
+        const next: PieData[] = [
+            { id: "Liquidità", label: "Liquidità", value: liquidita },
+            { id: "Investiti", label: "Investiti", value: investiti },
+        ];
+
+        // opcional: si ambos son 0, poner un slice “Nessun dato” para evitar un pie vacío
+        const safe =
+            liquidita + investiti > 0
+                ? next
+                : [{ id: "Nessun dato", label: "Nessun dato", value: 1 }];
+
+        setPipeData(safe);
+    }, [capital, invest]);
+    
+    const target = parseNum(objCapital);
+
+    const reachYears = useMemo(() => {
+        if (!target || !lineData?.length) return [];
+
+        return lineData
+            .map((s) => {
+                const hit = s.data.find((p) => p.y >= target);
+                return hit ? { id: s.id, year: hit.x } : null;
+            })
+            .filter(Boolean) as { id: string; year: string }[];
+    }, [lineData, objCapital]);
 
 
     // ===== Activation banner =====
@@ -372,7 +403,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
 
                                 <MDBCardBody className="p-3 p-md-4">
                                     <MDBTypography tag="h3" className="fw-bold mb-3 mb-md-4">
-                                        { Number(capital) + Number(invest) } €
+                                        {Number(capital) + Number(invest)} €
                                     </MDBTypography>
 
                                     <div className="d-flex flex-column flex-sm-row gap-3">
@@ -416,7 +447,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                 <MDBCardBody className="p-3 p-md-4">
                                     <div className="w-100" style={{ height: isMobile ? 220 : 180 }}>
                                         <ResponsivePie
-                                            data={data2}
+                                            data={pipeData}
                                             margin={
                                                 isMobile
                                                     ? { top: 10, right: 10, bottom: 60, left: 10 }
@@ -825,7 +856,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                 <div className="w-100" style={{ height: isMobile ? 320 : 400 }}>
                                     <ResponsiveLine
                                         data={lineData}
-
+                                        margin={{ top: 20, right: 20, bottom: 80, left: 70 }}
                                         xScale={{ type: "point" }}
                                         yScale={{ type: "linear", min: "auto", max: "auto", stacked: false, reverse: false }}
                                         colors={(serie) => {
@@ -833,37 +864,51 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                             if (serie.id === "Autodidatta") return "#E4A119";
                                             return "#E11D2E";
                                         }}
-                                        lineWidth={2}
-                                        pointSize={3}
+
+                                        // ✅ interacción / tooltip
+                                        useMesh={true}
+                                        enableTouchCrosshair={true}
+                                        enableSlices="x"   // opcional pero MUY útil con varias líneas (hover por “columna”)
+
+                                        // ✅ puntos (mejoran el hover visual)
+                                        pointSize={4}
                                         pointColor={{ theme: "background" }}
                                         pointBorderColor={{ from: "seriesColor" }}
-                                        enableArea={true}
-                                        areaOpacity={0.05}
-                                        enableTouchCrosshair={true}
-                                        useMesh={true}
-                                        axisBottom={{
-                                            tickSize: 5,
-                                            tickPadding: 5,
-                                            legendOffset: 40,
-                                            legendPosition: "middle",
-                                        }}
-                                        axisLeft={{
-                                            tickSize: 5,
-                                            tickPadding: 5,
-                                            legend: "Capitale (€)",
-                                            legendOffset: isMobile ? -38 : -50,
-                                            legendPosition: "middle",
-                                        }}
-                                        legends={[{
-                                            anchor: "bottom",
-                                            direction: "row",
-                                            translateX: 19,
-                                            translateY: 55,
-                                            itemWidth: 140,
-                                            itemHeight: 22,
-                                            symbolShape: "circle",
-                                        }]}
+
+                                        // ✅ animación
+                                        animate={true}
+                                        motionConfig="gentle"
+
+                                        markers={[
+                                            // ✅ línea horizontal objetivo
+                                            ...(target
+                                                ? [{
+                                                    axis: "y" as const,
+                                                    value: target,
+                                                    lineStyle: { strokeWidth: 1, strokeDasharray: "6 6" },
+                                                    legend: `Obiettivo: ${new Intl.NumberFormat("it-IT").format(target)} €`,
+                                                    legendPosition: "top-left" as const,
+                                                }]
+                                                : []),
+
+                                            // ✅ líneas verticales donde cada estrategia lo alcanza
+                                            ...reachYears.map((r) => ({
+                                                axis: "x" as const,
+                                                value: r.year, // como tu xScale es point, esto debe ser string (ej "2034")
+                                                lineStyle: {
+                                                    strokeWidth: 2,
+                                                    strokeDasharray: "4 4",
+                                                    stroke:
+                                                        r.id === "Strategie MIPAI" ? "#007A55" :
+                                                            r.id === "Autodidatta" ? "#E4A119" :
+                                                                "#E11D2E",
+                                                },
+
+                                                legendPosition: "bottom" as const,
+                                            })),
+                                        ]}
                                     />
+
                                 </div>
 
                                 <div className="mb-3 mt-3 text-center" style={{ fontSize: 12 }}>
@@ -1000,9 +1045,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                 <div className="w-100 mt-3" style={{ height: isMobile ? 320 : 400 }}>
                                     <ResponsiveLine
                                         data={backtestData}
+                                        margin={{ top: 20, right: 20, bottom: isMobile ? 70 : 80, left: 70 }}
 
                                         xScale={{ type: "point" }}
                                         yScale={{ type: "linear", min: "auto", max: "auto", stacked: false }}
+
                                         colors={() => "#155DFC"}
                                         lineWidth={2}
                                         pointSize={3}
@@ -1011,35 +1058,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                         enableArea={true}
                                         areaOpacity={0.05}
                                         useMesh={true}
-                                        axisLeft={{
-                                            tickSize: 5,
-                                            tickPadding: 5,
-                                            legend: "Capitale (€)",
-                                            legendOffset: isMobile ? -38 : -50,
-                                            legendPosition: "middle",
-                                        }}
-                                        legends={[
-                                            isMobile
-                                                ? {
-                                                    anchor: "bottom",
-                                                    direction: "row",
-                                                    translateX: 0,
-                                                    translateY: 50,
-                                                    itemWidth: 150,
-                                                    itemHeight: 18,
-                                                    itemsSpacing: 10,
-                                                    symbolShape: "circle",
-                                                }
-                                                : {
-                                                    anchor: "bottom",
-                                                    direction: "row",
-                                                    translateX: 19,
-                                                    translateY: 55,
-                                                    itemWidth: 180,
-                                                    itemHeight: 22,
-                                                    symbolShape: "circle",
-                                                },
-                                        ]}
+                                        enableSlices="x"
+
+
+
+
                                     />
                                 </div>
 

@@ -4,6 +4,7 @@ import { useLogos } from '../hooks/AssetsManager';
 import NavBar from "./NavBar";
 import TopBar from "./TopBar";
 import SideNav from "./SideNav";
+import TopBarSimple from "./TopBarSimple";
 import MobileNavLinks from "./MobileNavLinks";
 
 import CmsNavBar from "./CmsNavBar";
@@ -18,9 +19,10 @@ interface SkeletonProps {
   noNavbar?: boolean;
   noTopBar?: boolean;
   noSideNav?: boolean;
+  useSimpleTopbar?: boolean;
 }
 
-const Skeleton: React.FC<SkeletonProps> = ({ children, def_appState, noNavbar, noTopBar, noSideNav }) => {
+const Skeleton: React.FC<SkeletonProps> = ({ children, def_appState, noNavbar, noTopBar, noSideNav, useSimpleTopbar }) => {
   const isMobile = useIsMobile(768);
   const { logo_small, logo_large } = useLogos();
   const logo = (isMobile ? logo_small : logo_large);
@@ -58,11 +60,19 @@ const Skeleton: React.FC<SkeletonProps> = ({ children, def_appState, noNavbar, n
       { /* HERE ALL SUPERADMIN CONTENT */}
       {isSuperadmin && <CmsNavBar isGod={true} />}
       {!noTopBar && (
-        <TopBar
-          logoImg={logo}
-          toggleSidebar={() => setSidebarOpen(o => !o)}
-          appState={appState} setAppState={setAppState}
-        />
+        useSimpleTopbar ? (
+          <TopBarSimple
+            logoImg={logo}
+            toggleSidebar={() => setSidebarOpen(o => !o)}
+          />
+        ) : (
+          <TopBar
+            logoImg={logo}
+            toggleSidebar={() => setSidebarOpen(o => !o)}
+            appState={appState}
+            setAppState={setAppState}
+          />
+        )
       )}
       {!noNavbar && <NavBar logoImg={logo} appState={appState} setAppState={setAppState} drawerOpen={drawerOpen} setDrawerOpen={setDrawerOpen} />}
 

@@ -863,6 +863,19 @@ class nfoObjList extends nfoObjBase
             $subWheres = [];
             $subParams = [];
 
+            // ✅ SOLO managed_uid che l'utente possiede davvero (portfolio attivo)
+            $subWheres[] = "EXISTS (
+                SELECT 1
+                FROM `data_portfolios_info` p
+                WHERE p.`company_uid` = r.`company_uid`
+                AND p.`user_uid`    = :user_uid_sub
+                AND p.`isDeleted`   = '0'
+                AND p.`isDraft`     = '0'
+                AND p.`managed_uid` = r.`managed_uid`
+            )";
+            $subParams['user_uid_sub'] = $user_uid;
+
+
             // placeholder unici per la subquery
             $subWheres[] = "r.`company_uid` = :company_uid_sub";
             $subParams['company_uid_sub'] = $this->company_uid;
@@ -921,8 +934,19 @@ class nfoObjList extends nfoObjBase
             // 4) Main query: last report + alerts after last report (placeholder UNICI)
             // =========================================================
             $params = $subParams; // parto dai parametri della subquery
-
             $wheres = [];
+
+             // ✅ SOLO managed_uid che l'utente possiede davvero (portfolio attivo)
+            $wheres[] = "EXISTS (
+                SELECT 1
+                FROM `data_portfolios_info` p2
+                WHERE p2.`company_uid` = n.`company_uid`
+                AND p2.`user_uid`    = :user_uid_main
+                AND p2.`isDeleted`   = '0'
+                AND p2.`isDraft`     = '0'
+                AND p2.`managed_uid` = n.`managed_uid`
+            )";
+            $params['user_uid_main'] = $user_uid;
             $wheres[] = "n.`company_uid` = :company_uid_main";
             $params['company_uid_main'] = $this->company_uid;
 

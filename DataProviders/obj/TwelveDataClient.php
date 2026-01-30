@@ -155,6 +155,14 @@ final class TwelveDataClient
         return $all;
     }
 
+    public function getEarliestTimestamp(string $symbol, string $interval = '1month'): array
+    {
+        return $this->request('earliest_timestamp', [
+            'symbol'   => $symbol,
+            'interval' => $interval,
+        ]);
+    }
+
     // =========================================================
     // SEZIONE PUBBLICA – PERSISTENZA / CATALOGO
     // =========================================================

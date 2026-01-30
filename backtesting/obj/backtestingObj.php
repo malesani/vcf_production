@@ -218,7 +218,7 @@ class backtestingObj extends backtestingObjBase
                 'backtesting_uid'    => $uid,
                 'user_uid'           => $this->user_data['user_uid'],
                 'title'              => $data['title'],
-                'description'        => $data['description'],
+                // 'description'        => $data['description'],
                 'target'             => $data['target'],
                 'time_horizon_years' => $data['time_horizon_years'],
                 'cash_position'      => $data['cash_position'],
@@ -450,56 +450,119 @@ class backtestingObj extends backtestingObjBase
                 return ['success' => false, 'message' => 'backtesting.run.400.emptyAssets', 'error' => 'No assets configured'];
             }
 
+            // years da info (override), clamp
             $years = (int)($info['time_horizon_years'] ?? $years);
             $years = max(1, min(50, $years));
 
-            $end = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+            // range richiesto
+            $end   = new DateTimeImmutable('now', new DateTimeZone('UTC'));
             $start = $end->modify("-{$years} years");
 
-            $startDate = $start->format('Y-m-d');
-            $endDate   = $end->format('Y-m-d');
+            $requestedFrom = $start->format('Y-m-d');
+            $requestedTo   = $end->format('Y-m-d');
 
-            $initial = (float)($info['cash_position'] ?? 0);          // investimento iniziale
-            $monthly = (float)($info['automatic_savings'] ?? 0);      // PAC mensile
+            $initial = (float)($info['cash_position'] ?? 0.0);     // investimento iniziale
+            $monthly = (float)($info['automatic_savings'] ?? 0.0); // PAC
 
-            // --- 1) scarico time_series mensile per ogni asset
-            // TwelveData time_series tipicamente ritorna:
-            // {status:'ok', meta:{...}, values:[{datetime:'YYYY-MM-DD', open, high, low, close}, ...]}
+            // --- 1) scarico time_series per ogni asset e costruisco priceMap + first_available
             $seriesBySymbol = [];
-            $datesSet = [];
+            $datesSet = []; // union dates
 
             foreach ($assets as $a) {
                 $symbol = strtoupper(trim((string)($a['symbol'] ?? '')));
                 if ($symbol === '') continue;
 
-                $resp = $td->getTimeSeries($symbol, $interval, 600, $startDate, $endDate);
+                $earliestResp = $td->getEarliestTimestamp($symbol, $interval);
+                $earliestDt = $earliestResp['datetime']
+                    ?? $earliestResp['date']
+                    ?? ($earliestResp['data']['datetime'] ?? null)
+                    ?? ($earliestResp['data']['date'] ?? null)
+                    ?? null;
+
+                $earliestGlobal = null;
+                if (is_numeric($earliestDt)) {
+                    $earliestGlobal = gmdate('Y-m-d', (int)$earliestDt);
+                } elseif (is_string($earliestDt) && $earliestDt !== '') {
+                    $earliestGlobal = substr($earliestDt, 0, 10);
+                }
+
+                $resp = $td->getTimeSeries($symbol, $interval, 600, $requestedFrom, $requestedTo);
 
                 $values = $resp['values'] ?? $resp['data']['values'] ?? null;
                 if (!is_array($values) || empty($values)) {
-                    return ['success' => false, 'message' => 'backtesting.run.500.noTimeseries', 'error' => "No time_series for $symbol"];
+                    // in teoria vuoi “rarely fail”, ma qui proprio non ci sono dati nel range
+                    return [
+                        'success' => false,
+                        'message' => 'backtesting.run.500.noTimeseries',
+                        'error'   => "No time_series for $symbol",
+                        'debug'   => [
+                            'symbol'   => $symbol,
+                            'interval' => $interval,
+                            'from'     => $requestedFrom,
+                            'to'       => $requestedTo,
+                            'twelvedata' => [
+                                'status'  => $resp['status']  ?? null,
+                                'code'    => $resp['code']    ?? null,
+                                'message' => $resp['message'] ?? null,
+                                'meta'    => $resp['meta']    ?? ($resp['data']['meta'] ?? null),
+                            ],
+                        ],
+                    ];
                 }
 
-                // TwelveData spesso ritorna in ordine DESC (più recente prima). Noi vogliamo ASC.
+                // TwelveData spesso è DESC → noi vogliamo ASC
                 $valuesAsc = array_reverse($values);
 
-                // Normalizza: date => close(float)
                 $map = [];
                 foreach ($valuesAsc as $row) {
-                    $dt = $row['datetime'] ?? $row['date'] ?? null;
+                    $dt    = $row['datetime'] ?? $row['date'] ?? null;
                     $close = $row['close'] ?? null;
                     if (!$dt || !is_numeric($close)) continue;
+
                     $d = substr((string)$dt, 0, 10);
                     $map[$d] = (float)$close;
                     $datesSet[$d] = true;
                 }
 
                 if (empty($map)) {
-                    return ['success' => false, 'message' => 'backtesting.run.500.noPrices', 'error' => "No valid close prices for $symbol"];
+                    return [
+                        'success' => false,
+                        'message' => 'backtesting.run.500.noPrices',
+                        'error'   => "No valid close prices for $symbol",
+                        'debug'   => [
+                            'symbol' => $symbol,
+                            'interval' => $interval,
+                            'from' => $requestedFrom,
+                            'to' => $requestedTo,
+                            'twelvedata' => [
+                                'status'  => $resp['status']  ?? null,
+                                'code'    => $resp['code']    ?? null,
+                                'message' => $resp['message'] ?? null,
+                                'meta'    => $resp['meta']    ?? ($resp['data']['meta'] ?? null),
+                                'sample_values' => array_slice($values, 0, 3),
+                            ],
+                        ],
+                    ];
                 }
 
+                // first/last disponibili (dai dati reali che useremo)
+                $datesForSymbol = array_keys($map);
+                sort($datesForSymbol); // ASC
+                $firstAvailable = $datesForSymbol[0] ?? null;
+                $lastAvailable  = $datesForSymbol ? $datesForSymbol[count($datesForSymbol) - 1] : null;
+
                 $seriesBySymbol[$symbol] = [
-                    'weight' => (float)($a['weight_pct'] ?? 0),
-                    'prices' => $map,
+                    'weight'          => (float)($a['weight_pct'] ?? 0.0),
+                    'prices'          => $map,
+                    'first_available' => $firstAvailable,
+                    'last_available'  => $lastAvailable,
+                    'earliest_global' => $earliestGlobal,
+                    'raw_debug' => [
+                        'meta' => $resp['meta'] ?? ($resp['data']['meta'] ?? null),
+                        'values_count' => is_array($values) ? count($values) : 0,
+                        'first_value'  => $valuesAsc[0] ?? null, // più vecchia (ASC)
+                        'last_value'   => $valuesAsc[count($valuesAsc) - 1] ?? null, // più recente
+                    ],
                 ];
             }
 
@@ -507,50 +570,99 @@ class backtestingObj extends backtestingObjBase
                 return ['success' => false, 'message' => 'backtesting.run.400.emptyAssets', 'error' => 'No valid assets'];
             }
 
-            // --- 2) timeline mensile comune (intersezione “soft” con forward-fill)
+            $minPossibleFrom = null; // sarà max(earliest_global)
+            foreach ($seriesBySymbol as $symbol => $cfg) {
+                $eg = $cfg['earliest_global'] ?? null;
+                if (!$eg) continue;
+                if ($minPossibleFrom === null || $eg > $minPossibleFrom) $minPossibleFrom = $eg;
+            }
+
+            // --- 2) commonStart = la più giovane tra le first_available (max)
+            $commonStart = null;
+            foreach ($seriesBySymbol as $symbol => $cfg) {
+                $fa = $cfg['first_available'] ?? null;
+                if (!$fa) continue;
+                if ($commonStart === null || $fa > $commonStart) $commonStart = $fa;
+            }
+            if ($commonStart === null) {
+                return ['success' => false, 'message' => 'backtesting.run.500.noTimeseries', 'error' => 'Cannot compute commonStart'];
+            }
+
+            // --- 3) timeline comune (union) ma tagliata da commonStart in avanti
             $allDates = array_keys($datesSet);
             sort($allDates); // ASC
 
-            // taglia a "ultimi N anni" prendendo dalla fine
+            // taglia da commonStart (così Nivo “parte” dalla data più giovane tra i first_value)
+            $allDates = array_values(array_filter($allDates, fn($d) => $d >= $commonStart));
+
+            if (count($allDates) < 2) {
+                return [
+                    'success' => false,
+                    'message' => 'backtesting.run.500.noTimeseries',
+                    'error'   => "Timeline too short after commonStart ($commonStart)",
+                    'debug'   => [
+                        'commonStart' => $commonStart,
+                        'requestedFrom' => $requestedFrom,
+                        'requestedTo' => $requestedTo,
+                        'first_available_by_symbol' => array_map(fn($c) => $c['first_available'] ?? null, $seriesBySymbol),
+                    ]
+                ];
+            }
+
+            // opzionale: cap punti (dopo taglio)
             $maxPoints = ($interval === '1day')
-                ? ($years * 252 + 5)   // ~252 giorni borsa/anno (stima ok)
-                : ($years * 12 + 1);
+                ? ($years * 252 + 5)
+                : (($interval === '1week') ? ($years * 52 + 5) : ($years * 12 + 1));
 
             if (count($allDates) > $maxPoints) {
                 $allDates = array_slice($allDates, -$maxPoints);
             }
 
-            // --- 3) inizializzazione shares usando la prima data disponibile nella timeline
+            // --- 4) inizializzazione shares sulla prima data della timeline (che è >= commonStart)
             $startDate = $allDates[0];
 
             $shares = [];
             foreach ($seriesBySymbol as $symbol => $cfg) {
-                $w = $cfg['weight'] / 100.0;
+                $w = ((float)$cfg['weight']) / 100.0;
                 if ($w <= 0) {
                     $shares[$symbol] = 0.0;
                     continue;
                 }
 
                 $p0 = $this->priceAtDateForwardFill($cfg['prices'], $allDates, 0);
-                if ($p0 <= 0) return ['success' => false, 'message' => 'backtesting.run.500.invalidPrice', 'error' => "Invalid start price for $symbol at $startDate"];
+                if ($p0 <= 0) {
+                    // ora dovrebbe essere rarissimo, ma teniamo fallback con debug
+                    return [
+                        'success' => false,
+                        'message' => 'backtesting.run.500.invalidPrice',
+                        'error'   => "Invalid start price for $symbol at $startDate",
+                        'debug'   => [
+                            'symbol' => $symbol,
+                            'startDate' => $startDate,
+                            'computed_p0' => $p0,
+                            'commonStart' => $commonStart,
+                            'timeline_head' => array_slice($allDates, 0, 5),
+                            'first_available' => $cfg['first_available'] ?? null,
+                            'last_available'  => $cfg['last_available'] ?? null,
+                            'twelvedata' => $cfg['raw_debug'] ?? null,
+                        ],
+                    ];
+                }
 
                 $alloc0 = $initial * $w;
                 $shares[$symbol] = ($alloc0 > 0) ? ($alloc0 / $p0) : 0.0;
             }
 
-            // --- 4) loop mensile: applica PAC e valorizza portfolio
+            // --- 5) loop timeline: PAC + valorizzazione (Nivo)
             $portfolioSerie = [];
-            $assetSeries = []; // opzionale: serie per asset
-
-            foreach ($seriesBySymbol as $symbol => $_cfg) {
-                $assetSeries[$symbol] = [];
-            }
+            $assetSeries = [];
+            foreach ($seriesBySymbol as $symbol => $_cfg) $assetSeries[$symbol] = [];
 
             foreach ($allDates as $idx => $date) {
-                // PAC: aggiungi shares usando prezzo del mese
+                // PAC dal secondo punto in poi
                 if ($idx > 0 && $monthly > 0) {
                     foreach ($seriesBySymbol as $symbol => $cfg) {
-                        $w = $cfg['weight'] / 100.0;
+                        $w = ((float)$cfg['weight']) / 100.0;
                         if ($w <= 0) continue;
 
                         $px = $this->priceAtDateForwardFill($cfg['prices'], $allDates, $idx);
@@ -561,14 +673,13 @@ class backtestingObj extends backtestingObjBase
                     }
                 }
 
-                // Valorizzazione
+                // valorizzazione
                 $total = 0.0;
                 foreach ($seriesBySymbol as $symbol => $cfg) {
                     $px = $this->priceAtDateForwardFill($cfg['prices'], $allDates, $idx);
                     $val = ($shares[$symbol] ?? 0.0) * $px;
                     $total += $val;
 
-                    // serie asset (opzionale)
                     $assetSeries[$symbol][] = ['x' => $date, 'y' => round($val, 2)];
                 }
 
@@ -578,8 +689,6 @@ class backtestingObj extends backtestingObjBase
             $nivo = [
                 ['id' => 'Portfolio', 'data' => $portfolioSerie],
             ];
-
-            // se vuoi anche le serie per asset, aggiungile:
             foreach ($assetSeries as $symbol => $data) {
                 $nivo[] = ['id' => $symbol, 'data' => $data];
             }
@@ -589,16 +698,22 @@ class backtestingObj extends backtestingObjBase
                 'message' => 'backtesting.run.200.success',
                 'data' => [
                     'backtesting_uid' => $this->backtesting_uid,
-                    'from' => $allDates[0],
-                    'to' => $allDates[count($allDates) - 1],
-                    'interval' => '1month',
-                    'series' => $nivo,
-                ]
+                    'requested_from'  => $requestedFrom,
+                    'requested_to'    => $requestedTo,
+                    'from'            => $allDates[0], // ✅ commonStart effettivo (o prima data >= commonStart)
+                    'to'              => $allDates[count($allDates) - 1],
+                    'interval'        => $interval,    // ✅ non hardcodare
+                    'series'          => $nivo,
+                    // opzionale, utile lato UI:
+                    'common_start'    => $commonStart,
+                    'min_possible_from' => $minPossibleFrom,
+                ],
             ];
         } catch (Throwable $e) {
             return ['success' => false, 'message' => 'backtesting.run.500.fatalError', 'error' => $e->getMessage()];
         }
     }
+
 
     /**
      * Forward-fill: se manca la data, usa l’ultimo prezzo disponibile precedente lungo la timeline.

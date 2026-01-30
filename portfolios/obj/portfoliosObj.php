@@ -659,13 +659,20 @@ class portfolioObjList extends portfolioObjBase
             if (empty($filters['include_deleted'])) {
                 $wheres[] = "`p`.`isDeleted` = '0'";
             }
-
             $whereSql = $wheres ? ('WHERE ' . implode(' AND ', $wheres)) : '';
+
+            // columnas de p
             $cols = implode(', ', array_map(fn($f) => "`p`.`$f`", self::ALL_FIELDS_INFO));
+
+            // + columna del managed
+            $cols .= ", `m`.`title` AS `managed_title`";
 
             $sqlRows = "
                 SELECT $cols, `p`.`portfolio_uid`
                 FROM `" . self::TABLE_INFO . "` p
+                LEFT JOIN `data_managed_info` m
+                ON `m`.`managed_uid` COLLATE utf8mb4_general_ci
+                = `p`.`managed_uid` COLLATE utf8mb4_general_ci
                 $whereSql
                 ORDER BY `p`.`created_at` DESC
             " . (!$extractAll ? "LIMIT :offset, :perPage" : "");

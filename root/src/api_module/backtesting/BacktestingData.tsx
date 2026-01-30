@@ -238,7 +238,7 @@ export type RunBacktestingSeriesResponse = {
 
 export async function run_backtesting_series(
   params: { backtesting_uid: string; years?: number; interval?: '1day' | '1month' }
-): Promise<DataResponse<{ series: NivoSerie[]; from: string; to: string; interval: '1day' | '1month' }>> {
+): Promise<DataResponse<{ series: NivoSerie[]; from: string; to: string; interval: '1day' | '1month'; min_possible_from: string }>> {
   const response = await requestFunction(
     '/backtesting/api/backtesting.php',
     'GET',

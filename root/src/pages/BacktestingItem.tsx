@@ -120,7 +120,7 @@ const genKey = () =>
 
 const makeRow = (seed?: Partial<AssetRow>): AssetRow => ({
     key: genKey(),
-    symbol: seed?.symbol ?? "",
+    symbol: seed?.symbol ?? "Cerca Asset",
     weight_pct: seed?.weight_pct ?? 0,
 });
 
@@ -135,6 +135,10 @@ const BacktestingItem: React.FC = () => {
     const [investimentoIniziale, setInvestimentoInizialeProp] = useState<number>();
     const [contributoMensile, setContributoMensile] = useState<number>();
     const [tempoInvestimento, setTempoInvestimento] = useState<number>();
+    const [maxTempoInvestimento, setMaxTempoInvestimento] = useState<number>();
+
+    // states calcoli di badges
+    const [importoInvestito, setImportoInvestito] = useState<number>();
 
     //stato backtest backtestRes.data => bt
     const [backtest, setBacktest] = useState<BacktestingInfo | null>(null);
@@ -144,6 +148,7 @@ const BacktestingItem: React.FC = () => {
 
     //risultato data per nivo backtesting
     const [miniDataDb, setMiniDataDb] = useState<Serie[]>([]);
+    const [withoutSaving, setWithoutSaving] = useState<Serie[]>([]);
 
 
     /** ======= modal editor state ======= */
@@ -201,11 +206,32 @@ const BacktestingItem: React.FC = () => {
     const isMountedRef = useRef(true);
 
     useEffect(() => {
-        isMountedRef.current = true;
-        return () => {
-            isMountedRef.current = false;
-        };
-    }, []);
+        // guard: evita crash se miniDataDb è vuoto o non ha data
+        if (!miniDataDb?.length || !miniDataDb[0]?.data?.length) return;
+
+        const num_of_records = miniDataDb[0].data.length;
+
+        console.log("miniDataDb", miniDataDb);
+
+        const without_saving_raw: Serie[] = [{
+            id: 'Senza Investire',
+            data: []
+        }];
+
+        for (let i = 0; i < num_of_records; i++) {
+            without_saving_raw[0].data.push({
+                x: miniDataDb[0].data[i].x,
+                y: (investimentoIniziale??0) + (i*(contributoMensile??0))
+            });
+        }
+
+        // salva nello state
+        setWithoutSaving(without_saving_raw);
+    }, [miniDataDb]);
+
+    useEffect(() => {
+        console.log("withoutSaving", withoutSaving);
+    },[withoutSaving]);
 
 
     const loadStocksInfo = useCallback(async () => {
@@ -240,8 +266,14 @@ const BacktestingItem: React.FC = () => {
 
             setInvestimentoInizialeProp(bt.cash_position);
             setContributoMensile(bt.automatic_savings);
-            setTempoInvestimento(bt.time_horizon_years);
             setTitle(bt.title);
+            setTempoInvestimento(bt.time_horizon_years ? bt.time_horizon_years : 1)
+
+            /////
+
+            setImportoInvestito(
+                bt.cash_position + (bt.automatic_savings * 12 * bt.time_horizon_years - 1)
+            );
 
             const dbAssets = Array.isArray(bt.assets)
                 ? bt.assets
@@ -270,12 +302,17 @@ const BacktestingItem: React.FC = () => {
                 return;
             }
 
+            const lastDatePossible = new Date(seriesRes.data.min_possible_from).getFullYear();
+            const currentYear = new Date().getFullYear();
+            const maxData = (currentYear - lastDatePossible > 40) ? 40 : currentYear - lastDatePossible;
             const portfolioSerie =
                 seriesRes.data.series.find((s) => String(s.id).toLowerCase() === "portfolio") ??
                 seriesRes.data.series.find((s) => String(s.id).toLowerCase() === "portf") ??
                 seriesRes.data.series[0];
 
             setMiniDataDb(portfolioSerie ? ([portfolioSerie as Serie] as Serie[]) : []);
+
+            setMaxTempoInvestimento(maxData);
         } catch (err) {
             console.error("Errore caricamento backtesting", err);
             if (isMountedRef.current) {
@@ -303,6 +340,10 @@ const BacktestingItem: React.FC = () => {
         loadAll(bt_item_uid);
     }, [bt_item_uid, loadAll]);
 
+
+    useEffect (() => {
+
+    }, [])
 
     const stocksInfoOptions50 = useMemo(() => {
         const q = (query ?? "").toString().trim().toLowerCase();
@@ -480,10 +521,10 @@ const BacktestingItem: React.FC = () => {
                     <MDBCol xs="12">
                         <div>
                             <div className="fw-bold" style={{ fontSize: isMobile ? 20 : 28, color: "#111827" }}>
-                                {backtest?.title ?? "Backtesting"}
+                                {backtest?.title}
                             </div>
                             <div className="text-muted" style={ui.textBody}>
-                                {backtest?.description ?? "Backtesting"}
+                                {backtest?.description}
                             </div>
                         </div>
                     </MDBCol>
@@ -550,7 +591,7 @@ const BacktestingItem: React.FC = () => {
                                                                 </label>
                                                                 <MDBRange
                                                                     min="1"
-                                                                    max="40"
+                                                                    max={maxTempoInvestimento}
                                                                     value={String(tempoInvestimento ?? 1)}
                                                                     onChange={(e) => setTempoInvestimento(Number(e.target.value))}
                                                                 />
@@ -668,102 +709,111 @@ const BacktestingItem: React.FC = () => {
                 </MDBRow >
 
                 {/* LINE CHART */}
-                < MDBRow className="g-3 mb-4" >
-                    <MDBCol xs="12">
-                        <MDBCard className="shadow-sm rounded-4 border-0">
-                            <SectionHeader ui={ui} icon="chart-line" title="Andamento storico" subtitle="Risultati della strategia nel tempo" />
-                            <MDBCardBody className={ui.bodyPadClass}>
-                                {loading ? (
-                                    <General_Loading />
-                                ) : (
+                {miniDataDb.length > 0 &&
+                    <>
+                        < MDBRow className="g-3 mb-4" >
+                            <MDBCol xs="12">
+                                <MDBCard className="shadow-sm rounded-4 border-0">
+                                    <SectionHeader ui={ui} icon="chart-line" title="Andamento storico" subtitle="Risultati della strategia nel tempo" />
+                                    <MDBCardBody className={ui.bodyPadClass}>
+                                        {loading ? (
+                                            <General_Loading />
+                                        ) : (
 
-                                    <div style={{ width: "100%", height: isMobile ? 300 : 400 }}>
-                                        <div className="d-flex align-items-center justify-content-between mb-2">
-                                            <div className="small text-muted">Andamento (DB) - Assets + Portfolio</div>
+                                            <div style={{ width: "100%", height: isMobile ? 300 : 400 }}>
+                                                <div className="d-flex align-items-center justify-content-between mb-2">
+                                                    <div className="small text-muted">Andamento (DB) - Assets + Portfolio</div>
 
-                                            <div className="d-flex gap-2 flex-wrap justify-content-end">
-                                                {assetsDb.length > 0 ? (
-                                                    assetsDb.map((a) => (
-                                                        <MDBBadge key={a.symbol} color="light" className="text-dark border">
-                                                            {a.symbol} {a.weight_pct}%
-                                                        </MDBBadge>
-                                                    ))
-                                                ) : (
-                                                    <MDBBadge color="warning" light>
-                                                        Nessun asset nel DB
-                                                    </MDBBadge>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <ResponsiveLine
-                                            data={miniDataDb}
-                                            margin={isMobile ? { top: 20, right: 20, bottom: 60, left: 50 } : { top: 30, right: 30, bottom: 60, left: 60 }}
-                                            xScale={{ type: "point" }}
-                                            yScale={{ type: "linear", min: "auto", max: "auto", stacked: false }}
-                                            axisBottom={null}
-
-                                            enableGridY={false}
-                                            pointSize={isMobile ? 4 : 6}
-                                            useMesh={true}
-                                            enableSlices="x"
-                                            colors={["rgb(21,93,252)"]}
-                                            sliceTooltip={({ slice }) => (
-                                                <div
-                                                    style={{
-                                                        background: "white",
-                                                        padding: "9px 12px",
-                                                        border: "1px solid #ccc",
-                                                        borderRadius: 4,
-                                                    }}
-                                                >
-                                                    <div style={{ fontSize: 12, marginBottom: 6, color: "#555" }}>
-                                                        <strong>Data:</strong>{" "}
-                                                        {new Date(slice.points[0].data.x as string).toLocaleDateString("it-IT")}
+                                                    <div className="d-flex gap-2 flex-wrap justify-content-end">
+                                                        {assetsDb.length > 0 ? (
+                                                            assetsDb.map((a) => (
+                                                                <MDBBadge key={a.symbol} color="light" className="text-dark border">
+                                                                    {a.symbol} {a.weight_pct}%
+                                                                </MDBBadge>
+                                                            ))
+                                                        ) : (
+                                                            <MDBBadge color="warning" light>
+                                                                Nessun asset nel DB
+                                                            </MDBBadge>
+                                                        )}
                                                     </div>
+                                                </div>
+                                                <ResponsiveLine
+                                                    data={[
+                                                        withoutSaving[0],
+                                                        miniDataDb[0]
+                                                    ]}
+                                                    margin={isMobile ? { top: 20, right: 20, bottom: 60, left: 50 } : { top: 30, right: 30, bottom: 60, left: 60 }}
+                                                    xScale={{ type: "point" }}
+                                                    yScale={{ type: "linear", min: "auto", max: "auto", stacked: false }}
+                                                    axisBottom={null}
 
-                                                    {slice.points.map((point) => (
+                                                    enableGridY={false}
+                                                    pointSize={isMobile ? 4 : 6}
+                                                    useMesh={true}
+                                                    enableSlices="x"
+                                                    colors={["rgb(228,161,25)", "rgb(21,93,252)"]}
+                                                    sliceTooltip={({ slice }) => (
                                                         <div
-                                                            key={point.id}
                                                             style={{
-                                                                color: point.seriesColor,
-                                                                fontSize: 13,
-                                                                display: "flex",
-                                                                justifyContent: "space-between",
-                                                                gap: 12,
+                                                                background: "white",
+                                                                padding: "9px 12px",
+                                                                border: "1px solid #ccc",
+                                                                borderRadius: 4,
                                                             }}
                                                         >
-                                                            <span>{point.seriesId}</span>
-                                                            <strong>{Number(point.data.y).toFixed(2)} €</strong>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        />
-                                    </div>
-                                )}
-                            </MDBCardBody>
-                        </MDBCard>
-                    </MDBCol>
-                </MDBRow >
+                                                            <div style={{ fontSize: 12, marginBottom: 6, color: "#555" }}>
+                                                                <strong>Data:</strong>{" "}
+                                                                {new Date(slice.points[0].data.x as string).toLocaleDateString("it-IT")}
+                                                            </div>
 
-                {/* STATS */}
-                {/* < MDBRow className="g-3" >
-                    <MDBCol xs="6" md="4" lg="2">
-                        <StatCard ui={ui} label="Importo investito" value="10.000 €" />
-                    </MDBCol>
-                    <MDBCol xs="6" md="4" lg="2">
-                        <StatCard ui={ui} label="Crescita annuale composta" value="27,51%" />
-                    </MDBCol>
-                    <MDBCol xs="6" md="4" lg="2">
-                        <StatCard ui={ui} label="Valore patrimoniale netto" value="22.938 €" />
-                    </MDBCol>
-                    <MDBCol xs="6" md="4" lg="3">
-                        <StatCard ui={ui} label="Deviazione standard" value="59,19%" />
-                    </MDBCol>
-                    <MDBCol xs="12" md="4" lg="3">
-                        <StatCard ui={ui} label="Rapporto di Sharpe" value="0,66" />
-                    </MDBCol>
-                </MDBRow > */}
+                                                            {slice.points.map((point) => (
+                                                                <div
+                                                                    key={point.id}
+                                                                    style={{
+                                                                        color: point.seriesColor,
+                                                                        fontSize: 13,
+                                                                        display: "flex",
+                                                                        justifyContent: "space-between",
+                                                                        gap: 12,
+                                                                    }}
+                                                                >
+                                                                    <span>{point.seriesId}</span>
+                                                                    <strong>{Number(point.data.y).toFixed(2)} €</strong>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                />
+                                            </div>
+                                        )}
+                                    </MDBCardBody>
+                                </MDBCard>
+                            </MDBCol>
+                        </MDBRow >
+
+                        < MDBRow className="g-3" >
+                            <MDBCol xs="6" md="4" lg="2">
+                                <StatCard ui={ui} label="Importo investito" value={importoInvestito ? importoInvestito.toString() : "0"} />
+                            </MDBCol>
+                            <MDBCol xs="6" md="4" lg="2">
+                                <StatCard ui={ui} label="Crescita annuale composta" value="27,51%" />
+                            </MDBCol>
+                            <MDBCol xs="6" md="4" lg="2">
+                                <StatCard ui={ui} label="Valore patrimoniale netto" value={importoInvestito ? importoInvestito.toString() : "0"} />
+                            </MDBCol>
+                            <MDBCol xs="6" md="4" lg="3">
+                                <StatCard ui={ui} label="Deviazione standard" value="59,19%" />
+                            </MDBCol>
+                            <MDBCol xs="12" md="4" lg="3">
+                                <StatCard ui={ui} label="Rapporto di Sharpe" value="0,66" />
+                            </MDBCol>
+                        </MDBRow >
+                    </>
+                }
+
+
+
             </MDBContainer >
 
             {/* ==================== MODAL: EDIT ASSETS ==================== */}

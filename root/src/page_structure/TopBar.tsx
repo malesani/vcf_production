@@ -31,9 +31,9 @@ import { logoutFunction } from "../auth_module/loginFunctions";
 import { useAuth } from "../auth_module/AuthContext";
 import { useIsMobile } from "../app_components/ResponsiveModule";
 
-// ✅ importa da dove tieni NfoData
 import { get_nfoUnseenFeed, NfoInfo, mark_nfoSeen } from "../api_module/nfo/NfoData";
 
+import { fetchManagedPortfoliosActive, PortManagedInfo } from "../api_module/portfolioManaged/PortManagedData";
 
 interface TopBarProps {
   logoImg?: string;
@@ -55,12 +55,52 @@ const TopBar: React.FC<TopBarProps> = ({
   // ✅ stato modale centro notifiche
   const [notifCenterOpen, setNotifCenterOpen] = useState(false);
   const toggleNotifCenter = () => setNotifCenterOpen((v) => !v);
+  const [markingGroup, setMarkingGroup] = useState<Set<string>>(new Set());
+
+  const [removingNfo, setRemovingNfo] = useState<Set<string>>(new Set());
 
   // ✅ dati centro notifiche
   const [alerts, setAlerts] = useState<NfoInfo[]>([]);
   const [reports, setReports] = useState<NfoInfo[]>([]);
   const [loadingNfo, setLoadingNfo] = useState(false);
   const [nfoError, setNfoError] = useState<string | null>(null);
+
+  const [managedPortfoliosInfo, setManagedPortfoliosInfo] = useState<PortManagedInfo[]>([]);
+  const [loadingManagedList, setLoadingManagedList] = useState(false);
+
+  useEffect(() => {
+    const run = async () => {
+      setLoadingManagedList(true);
+      try {
+        const resp = await fetchManagedPortfoliosActive();
+        if (resp.response.success && resp.data) {
+          setManagedPortfoliosInfo(resp.data);
+        }
+      } catch (e) {
+        console.error("Errore caricamento managed portfolios:", e);
+      } finally {
+        setLoadingManagedList(false);
+      }
+    };
+    run();
+  }, []);
+
+  const managedTitleByUid = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of managedPortfoliosInfo ?? []) {
+      // adatta le chiavi se nel tuo PortManagedInfo si chiamano diversamente
+      const uid = (p as any)?.managed_uid ?? (p as any)?.uid;
+      const title = (p as any)?.title ?? (p as any)?.name;
+      if (uid && title) map.set(String(uid), String(title));
+    }
+    return map;
+  }, [managedPortfoliosInfo]);
+
+  const getManagedLabel = (uid?: string) => {
+    if (!uid) return "—";
+    return managedTitleByUid.get(uid) ?? uid; // fallback su uid
+  };
+
 
   const [markingSeen, setMarkingSeen] = useState<Set<string>>(new Set());
 
@@ -92,6 +132,7 @@ const TopBar: React.FC<TopBarProps> = ({
         next.add(nfo_uid);
         return next;
       });
+      startRemoveAnimation(nfo_uid);
     } catch (e) {
       console.error("markViewed error:", e);
     } finally {
@@ -102,6 +143,97 @@ const TopBar: React.FC<TopBarProps> = ({
       });
     }
   };
+
+  const markAllInGroupViewed = async (groupManagedUid: string) => {
+    if (markingGroup.has(groupManagedUid)) return;
+
+    // trova il gruppo corrente
+    const g = groups.find((x) => x.managed_uid === groupManagedUid);
+    if (!g) return;
+
+    const ids = [
+      ...g.alerts.map((x) => x.nfo_uid),
+      ...g.reports.map((x) => x.nfo_uid),
+    ].filter(Boolean) as string[];
+
+    // solo quelle non già viste / non in corso
+    const toMark = ids.filter(
+      (id) => !viewedNfo.has(id) && !markingSeen.has(id)
+    );
+
+    if (toMark.length === 0) return;
+
+    // set gruppo in loading
+    setMarkingGroup((prev) => {
+      const next = new Set(prev);
+      next.add(groupManagedUid);
+      return next;
+    });
+
+    try {
+      // sequenziale: una per una
+      for (const id of toMark) {
+        setMarkingSeen((prev) => {
+          const next = new Set(prev);
+          next.add(id);
+          return next;
+        });
+
+        try {
+          const res = await mark_nfoSeen(id);
+          if (res.response.success) {
+            setViewedNfo((prev) => {
+              const next = new Set(prev);
+              next.add(id);
+              return next;
+            });
+
+            startRemoveAnimation(id);
+          } else {
+            console.error("mark_nfoSeen failed:", id, res.response.error || res.response.message);
+          }
+        } catch (e) {
+          console.error("mark_nfoSeen error:", id, e);
+        } finally {
+          setMarkingSeen((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        }
+      }
+    } finally {
+      setMarkingGroup((prev) => {
+        const next = new Set(prev);
+        next.delete(groupManagedUid);
+        return next;
+      });
+    }
+  };
+
+
+  const startRemoveAnimation = (nfo_uid: string) => {
+    setRemovingNfo((prev) => {
+      const next = new Set(prev);
+      next.add(nfo_uid);
+      return next;
+    });
+
+    // durata animazione (allineala alla classe CSS)
+    window.setTimeout(() => {
+      // rimuovi dal feed locale
+      setAlerts((prev) => prev.filter((x) => x.nfo_uid !== nfo_uid));
+      setReports((prev) => prev.filter((x) => x.nfo_uid !== nfo_uid));
+
+      // pulizia set
+      setRemovingNfo((prev) => {
+        const next = new Set(prev);
+        next.delete(nfo_uid);
+        return next;
+      });
+    }, 280);
+  };
+
 
 
   const handleLogout = async () => {
@@ -168,16 +300,6 @@ const TopBar: React.FC<TopBarProps> = ({
     return `${IT_MONTHS[idx]} ${year}`;
   };
 
-  const managedName: Record<string, string> = {
-    managed1: "conservativi",
-    managed2: "a crescita bilanciata",
-  };
-
-  const getManagedLabel = (uid?: string) => {
-    if (!uid) return "—";
-    return managedName[uid] ?? uid; // fallback: se non trovato, mostra uid
-  };
-
   const groups = useMemo(() => {
     const all = [...(alerts ?? []), ...(reports ?? [])];
 
@@ -217,7 +339,7 @@ const TopBar: React.FC<TopBarProps> = ({
     });
 
     return arr;
-  }, [alerts, reports]); // getManagedLabel è pura (usa managedName), ok così
+  }, [alerts, reports, managedTitleByUid]); // getManagedLabel è pura (usa managedName), ok così
 
 
   return (
@@ -347,12 +469,34 @@ const TopBar: React.FC<TopBarProps> = ({
                       {/* Header gruppo */}
                       <div className="d-flex align-items-center justify-content-between mb-2">
                         <MDBTypography tag="h6" className="mb-0">
-                          Portafoglio {g.label}
+                          {g.label}
                         </MDBTypography>
 
-                        <MDBBadge color="dark" pill>
-                          {(g.alerts.length ?? 0) + (g.reports.length ?? 0)}
-                        </MDBBadge>
+                        <div className="d-flex align-items-center gap-2">
+                          <MDBBtn
+                            size="sm"
+                            color="light"
+                            disabled={
+                              markingGroup.has(g.managed_uid) ||
+                              // disabilita se sono tutte già viste
+                              [...g.alerts, ...g.reports].every((x) => viewedNfo.has(x.nfo_uid))
+                            }
+                            onClick={() => markAllInGroupViewed(g.managed_uid)}
+                          >
+                            {markingGroup.has(g.managed_uid) ? (
+                              <>
+                                <MDBSpinner size="sm" className="me-2" />
+                                Segno...
+                              </>
+                            ) : (
+                              "Segna tutte come lette"
+                            )}
+                          </MDBBtn>
+
+                          <MDBBadge color="dark" pill>
+                            {(g.alerts.length ?? 0) + (g.reports.length ?? 0)}
+                          </MDBBadge>
+                        </div>
                       </div>
 
                       {/* ALERTS del gruppo */}
@@ -369,7 +513,10 @@ const TopBar: React.FC<TopBarProps> = ({
 
                           <MDBListGroup className="mb-3">
                             {g.alerts.map((a) => (
-                              <MDBListGroupItem key={a.nfo_uid} className="py-3">
+                              <MDBListGroupItem
+                                key={a.nfo_uid}
+                                className={`py-3 ${removingNfo.has(a.nfo_uid) ? "nfo-exit" : ""}`}
+                              >
                                 <div className="d-flex align-items-start justify-content-between gap-3">
                                   <div>
                                     <div className="fw-bold">
@@ -427,7 +574,10 @@ const TopBar: React.FC<TopBarProps> = ({
 
                           <MDBListGroup>
                             {g.reports.map((r) => (
-                              <MDBListGroupItem key={r.nfo_uid} className="py-3">
+                              <MDBListGroupItem
+                                key={r.nfo_uid}
+                                className={`py-3 ${removingNfo.has(r.nfo_uid) ? "nfo-exit" : ""}`}
+                              >
                                 <div className="d-flex align-items-start justify-content-between gap-3">
                                   <div>
                                     <div className="fw-bold">

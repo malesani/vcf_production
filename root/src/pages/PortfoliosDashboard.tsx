@@ -45,10 +45,6 @@ const PortfoliosDashboard: React.FC = () => {
     const [showDataPortfolios, setShowDataPortfolios] = useState<PortfolioInfo[]>([]);
     const [statusMap, setStatusMap] = useState<Record<string, string>>({});
 
-    const managedName: Record<string, string> = {
-        managed1: "Portafoglio conservativo",
-        managed2: "Crescita Bilanciata",
-    };
 
     // ── Filtri tabella ─────────────────────────────────────────────────────────
     const [filters, setFilters] = useState<TableFilters<PortfolioInfo>>({
@@ -261,7 +257,7 @@ const PortfoliosDashboard: React.FC = () => {
 
                                     <div className="fw-bold">
                                         {child.type === 'managed'
-                                            ? managedName[child.managed_uid]
+                                            ? child.managed_title
                                             : "Personale"}
                                     </div>
 

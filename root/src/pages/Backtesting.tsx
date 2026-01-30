@@ -113,10 +113,10 @@ const Portfolio_FormFields: FieldConfig<BacktestingInfoLite>[] = [
 
     { name: "title", type: "text", label: "Titolo", required: true, grid: { md: 12 } },
     { name: "description", type: "text_area", label: "Descrizione", required: true, grid: { md: 12 } },
-    { name: "target", type: "number", label: "Obiettivo", required: true, grid: { md: 6 } },
-    { name: "time_horizon_years", type: "number", label: "Orizzonte Temporale (anni)", required: true, grid: { md: 6 } },
-    { name: "cash_position", type: "number", label: "Investimento iniziale", required: true, grid: { md: 6 } },
-    { name: "automatic_savings", type: "number", label: "Investimento mensile", required: true, grid: { md: 6 } },
+    { name: "target", type: "number", label: "Obiettivo", required: true, grid: { md: 4 } },
+    // { name: "time_horizon_years", type: "number", label: "Orizzonte Temporale (anni)", required: true, grid: { md: 6 }, visible: () => false },
+    { name: "cash_position", type: "number", label: "Investimento iniziale", required: true, grid: { md: 4 } },
+    { name: "automatic_savings", type: "number", label: "Investimento mensile", required: true, grid: { md: 4 } },
 ];
 
 const Backtesting: React.FC = () => {
@@ -485,7 +485,7 @@ const Backtesting: React.FC = () => {
                                     label: "Crea il tuo portafoglio",
                                     labelSaving: "Creazione in corso",
                                 }}
-                                params={{ user_uid: UserInfoUid }}
+                                params={{ user_uid: UserInfoUid, time_horizon_years : 1 }}
                                 fields={Portfolio_FormFields}
                                 createData={async (payload) => {
                                     const res = await create_backtesting(payload);

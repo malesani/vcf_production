@@ -194,11 +194,28 @@ try {
                         $years > 0 ? $years : 10
                     );
 
-                    http_response_code(($res['success'] ?? false) ? 200 : 400);
+                    $status = 200;
+                    if (!($res['success'] ?? false)) {
+                        // default
+                        $status = 400;
+
+                        // mappa alcuni casi
+                        $msg = $res['message'] ?? '';
+                        if (str_starts_with($msg, 'backtesting.run.500.')) $status = 500;
+                        if (in_array($msg, ['backtesting.run.500.invalidPrice', 'backtesting.run.500.noTimeseries', 'backtesting.run.500.noPrices'], true)) {
+                            $status = 422;
+                        }
+                    }
+                    http_response_code($status);
+                    $debugStr = '';
+                    if (!empty($res['debug'])) {
+                        $debugStr = ' | debug=' . json_encode($res['debug'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                    }
+
                     echo json_encode($reqResp->toArray(
                         success: $res['success'] ?? false,
                         message: $trad->lang($res['message'] ?? 'backtesting.run.200.success'),
-                        error: $res['error'] ?? null,
+                        error: ($res['error'] ?? null) ? (($res['error'] ?? '') . $debugStr) : ($debugStr !== '' ? $debugStr : null),
                         data: $res['data'] ?? null
                     ));
                     break;

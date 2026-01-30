@@ -250,6 +250,70 @@ try {
                     ));
                     break;
 
+                case 'nfo_unseen_feed':
+                    $listObj = new nfoObjList($authManager, $permsManager);
+
+                    $result = $listObj->get_nfoListUnseen(
+                        [
+                            // filtri opzionali
+                            'search'         => $requestData['search'] ?? '',
+                            'managed_uid'    => !empty($requestData['managed_uid']) ? $requestData['managed_uid'] : null,
+
+                            // se vuoi poter forzare status (altrimenti la funzione fa default active)
+                            'status'         => $requestData['status'] ?? '',
+
+                            // opzionali/legacy
+                            'scheduled_from' => $requestData['scheduled_from'] ?? '',
+                            'scheduled_to'   => $requestData['scheduled_to'] ?? '',
+                            'month_num'      => $requestData['month_num'] ?? '',
+                            'year'           => $requestData['year'] ?? '',
+                        ],
+                        true,   // extractAll
+                        1,      // page (ignorato in extractAll)
+                        25,     // perPage (ignorato in extractAll)
+                        false,  // includeAssets (puoi metterlo true se ti serve)
+                        isset($requestData['limit']) ? (int)$requestData['limit'] : null
+                    );
+
+                    http_response_code($result['success'] ? 200 : 400);
+                    echo json_encode($reqResp->toArray(
+                        success: $result['success'],
+                        message: $trad->lang($result['message']),
+                        error: $result['error'] ?? null,
+                        data: $result['data'] ?? null
+                    ));
+                    break;
+
+                case 'nfo_unseen_feed_paginated':
+                    $listObj = new nfoObjList($authManager, $permsManager);
+
+                    $result = $listObj->get_nfoListUnseen(
+                        [
+                            'search'         => $requestData['search'] ?? '',
+                            'managed_uid'    => !empty($requestData['managed_uid']) ? $requestData['managed_uid'] : null,
+                            'status'         => $requestData['status'] ?? '',
+                            'scheduled_from' => $requestData['scheduled_from'] ?? '',
+                            'scheduled_to'   => $requestData['scheduled_to'] ?? '',
+                            'month_num'      => $requestData['month_num'] ?? '',
+                            'year'           => $requestData['year'] ?? '',
+                        ],
+                        false,  // extractAll = false => ritorna {rows, meta}
+                        (int)($requestData['page'] ?? 1),
+                        (int)($requestData['per_page'] ?? 25),
+                        false   // includeAssets
+                        // niente limit qui: usa per_page
+                    );
+
+                    http_response_code($result['success'] ? 200 : 400);
+                    echo json_encode($reqResp->toArray(
+                        success: $result['success'],
+                        message: $trad->lang($result['message']),
+                        error: $result['error'] ?? null,
+                        data: $result['data'] ?? null
+                    ));
+                    break;
+
+
                 default:
                     $defaultOption = true;
                     break;
@@ -412,6 +476,29 @@ try {
                     ));
                     break;
 
+                case 'nfo_markSeen':
+                    if (empty($requestData['nfo_uid'])) {
+                        http_response_code(400);
+                        echo json_encode($reqResp->toArray(
+                            success: false,
+                            message: $trad->lang('nfo.400.missingRequiredParameters'),
+                            error: 'Missing parameter: nfo_uid'
+                        ));
+                        break;
+                    }
+
+                    $obj = new nfoObj($authManager, $permsManager, null);
+                    $res = $obj->mark_seen((string)$requestData['nfo_uid']);
+
+                    http_response_code($res['success'] ? 200 : 400);
+                    echo json_encode($reqResp->toArray(
+                        success: $res['success'],
+                        message: $trad->lang($res['message']),
+                        error: $res['error'] ?? null,
+                        data: $res['data'] ?? null
+                    ));
+                    break;
+
                 default:
                     $defaultOption = true;
                     break;
@@ -427,7 +514,7 @@ try {
             ));
     }
 
-        if ($defaultOption) {
+    if ($defaultOption) {
         http_response_code(400);
         echo json_encode($reqResp->toArray(
             success: false,

@@ -91,7 +91,7 @@ const Skeleton: React.FC<SkeletonProps> = ({ children, def_appState, noNavbar, n
           // il ref vero e proprio
           ref={contentRef}
           // opzionale: se vuoi che il data-mdb-content punti ad ID
-          id="slim-content"
+          id="slim-contents"
         >
           <MDBContainer fluid>{children}</MDBContainer>
         </div>

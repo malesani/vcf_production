@@ -3,11 +3,9 @@ import { MDBBadge, MDBBtn, MDBCard, MDBCardBody, MDBCardHeader, MDBCardTitle, MD
 
 import { FieldConfig, SelectData, GeneralForm } from '../../app_components/GeneralForm';
 
-import { GeneralInput } from "../../app_components/GeneralInput";
 
-
-import { PortfolioInfo, PortfolioAssets, } from '../../api_module/portfolio/constants';
-import { OperationItem, createOperation, fetchOperationsPaginated, ExecutedOperationSelect } from "../../api_module/operations/OperationsRequest";
+import { PortfolioInfo, } from '../../api_module/portfolio/constants';
+import { OperationItem, createOperation,  } from "../../api_module/operations/OperationsRequest";
 import { getStocksInfo } from '../../api_module_v1/FinancialDataRequest';
 
 

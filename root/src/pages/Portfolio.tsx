@@ -87,15 +87,17 @@ const Portfolio: React.FC = () => {
 
   const [loadingMode, setLoadingMode] = useState(true);
 
-  const [portfolioInfo, setPortfolioInfo] = useState<PortfolioInfo>();
   const [managedInfo, setManagedInfo] = useState<PortManagedInfo>();
+
+  //forse autoreload prezzi
+  const [portfolioInfo, setPortfolioInfo] = useState<PortfolioInfo>();
   const [prices, setPrices] = useState<Record<string, number | null>>({});
 
-
-  //da capire
   const [alertsInfo, setAlertsInfo] = useState<NfoInfo[]>([]);
   const [validReportInfo, setValidReportInfo] = useState<NfoInfo>();
 
+  //per reload di operazioni cronologia
+  const [shouldRefreshA, setShouldRefreshA] = useState<number>(0);
 
   //per gestione pesature
   const [validReportWeighing, setValidReportWeighing] = useState<SymbolWeighing[]>();
@@ -111,9 +113,7 @@ const Portfolio: React.FC = () => {
   const [htmlPreview, setHtmlPreview] = useState<string>('');
   const [modalTitle, setModalTitle] = useState<string>('');
   const [openPreviewModal, setOpenPreviewModal] = useState(false);
-
   const [editMonthPayment, setEditMonthPayment] = useState(false);
-
 
   // Modale esecuzione operazione (singola)
   const [openExecuteModal, setOpenExecuteModal] = useState<boolean>(false);
@@ -125,7 +125,7 @@ const Portfolio: React.FC = () => {
     const portResp = await get_portfolioByUID({ portfolio_uid });
     if (!cancelled && portResp.response.success && portResp.data) {
       setPortfolioInfo(portResp.data);
-
+      console.log(portResp.data, " info portfolio");
       // Si es un portfolio managed, obtiene info adicional
       if (portResp.data.type === "managed" && portResp.data.managed_uid) {
         const mp = await fetchManagedPortfoliosActive();
@@ -145,8 +145,9 @@ const Portfolio: React.FC = () => {
     const pricesResp = await get_assetPrices({ portfolio_uid });
     if (!cancelled && pricesResp.response.success && pricesResp.data) {
       const map = Object.fromEntries(
-        pricesResp.data.map((p: any) => [p.symbol, p.currentPrice])
+        pricesResp.data.map((p: any) => [p.symbol, p.currentPrice, p.unitaryPrice_avg])
       );
+      console.log(map, "prezzi fetchati");
       setPrices(map);
     }
   };
@@ -156,7 +157,7 @@ const Portfolio: React.FC = () => {
     try {
       // 🔹 Recupero report di pesatura
       const pesRes = await get_assetsEarnings({ portfolio_uid });
-
+      console.log(pesRes.data, "profit fetchati")
       if (pesRes.response.success && pesRes.data) {
         setProfit(pesRes.data)
       } else {
@@ -198,6 +199,11 @@ const Portfolio: React.FC = () => {
   };
 
 
+  const RefreshOperationsHistory = () => {
+    // lógica en el padre
+    setShouldRefreshA((n) => n + 1); // gatillo para A
+  };
+
 
   // ===== FETCH BASE =====
   useEffect(() => {
@@ -208,10 +214,14 @@ const Portfolio: React.FC = () => {
     const loadAll = async () => {
       try {
         setLoadingMode(true);
+        // ricarica dati portfolio
         await fetchPortfolioInfo(portfolio_uid, cancelled);
         await fetchPrices(portfolio_uid, cancelled);
+
+        // ricarica operazioni e pesatura
         await fetchOperations(portfolio_uid, cancelled);
         await fetchProfit(portfolio_uid, cancelled);
+
       } catch (err) {
         console.error("Errore caricamento dati portfolio:", err);
       } finally {
@@ -220,10 +230,6 @@ const Portfolio: React.FC = () => {
     };
 
     loadAll();
-
-    return () => {
-      cancelled = true;
-    };
   }, [portfolio_uid]);
 
   // ===== FETCH ALERT/REPORT: usa direttamente managed_uid dal PORTFOLIO =====
@@ -248,7 +254,6 @@ const Portfolio: React.FC = () => {
         setValidReportInfo(reports.response.success ? reports.data : undefined);
       } catch (e) {
         if (!cancelled) {
-          console.log("entro")
           setAlertsInfo([]);
           setValidReportInfo(undefined);
         }
@@ -317,7 +322,7 @@ const Portfolio: React.FC = () => {
 
   return (
     <>
-      <MDBContainer>
+      <MDBContainer fluid>
         <MDBRow>
           <MDBCol className="mb-3 p-0" md="12">
             <MDBRow className="d-flex justify-content-center align-items-center">
@@ -335,12 +340,12 @@ const Portfolio: React.FC = () => {
                           tag="h5"
                           className="mb-0 d-flex align-items-center flex-wrap text-truncate"
                         >
-                          <span className='me-2 fs-6 mb-2' style={{ background: "rgba(69, 85, 108, 1)", borderRadius: "8px", padding:"3px 6px", fontWeight:"400"}}>
+                          <span className='me-2 fs-6 mb-2 mb-sm-0' style={{ background: "rgba(69, 85, 108, 1)", borderRadius: "8px", padding: "3px 6px", fontWeight: "400" }}>
                             {portfolioInfo.title}
                           </span>
 
                           {(portfolioInfo.type === "managed" && managedInfo?.title) && (
-                            <span className='me-2  fs-6' style={{ background: "rgba(69, 85, 108, 1)", borderRadius: "8px", padding:"3px 6px", fontWeight:"400"}}>
+                            <span className='me-2  fs-6' style={{ background: "rgba(69, 85, 108, 1)", borderRadius: "8px", padding: "3px 6px", fontWeight: "400" }}>
                               Gestito | {managedInfo.title}
                             </span>
                           )}
@@ -371,7 +376,7 @@ const Portfolio: React.FC = () => {
                           <span className="">
                             Guadagni o Perdite Realizzate:
                           </span><br />
-                          <span className="fw-bold fs-5"> {profit.reduce((sum, item) => sum + item.earning_cash, 0)}</span>
+                          <span className="fw-bold fs-5"> {(profit.reduce((sum, item) => sum + item.earning_cash, 0)).toFixed(2).replace('.', ',')} €</span>
                         </p>
                       </MDBCol>
                     </MDBRow>
@@ -455,10 +460,13 @@ const Portfolio: React.FC = () => {
                       managedInfo={managedInfo}
                       assetPrices={prices}
                       realOps={realOpsRes}
+                      profit={profit}
                       pesature={validReportWeighing}
+                      onReloadProfit={() => fetchProfit(portfolio_uid!)} 
                       onReloadPrices={() => fetchPrices(portfolio_uid!)}
                       onReloadPortfolio={() => fetchPortfolioInfo(portfolio_uid!)}
                       onReloadOperations={() => fetchOperations(portfolio_uid!)}
+
                     />
                   </MDBCardBody>
                 </MDBCard>
@@ -561,6 +569,11 @@ const Portfolio: React.FC = () => {
                             <MDBCol md="12" className="mb-3 ">
                               <OperationsHistory
                                 portfolio_uid={portfolio_uid!}
+                                onReloadPrices={() => fetchPrices(portfolio_uid!)}
+                                onReloadPortfolio={() => fetchPortfolioInfo(portfolio_uid!)}
+                                onReloadOperations={() => fetchOperations(portfolio_uid!)}
+
+
                               />
                             </MDBCol>
                           ),
@@ -629,8 +642,7 @@ const Portfolio: React.FC = () => {
                         nfo_uid: selectedOp?.nfo_uid
                       } as OperationItem;
 
-                      await createOperation(item)
-
+                      const result = await createOperation(item)
                       setDateLastOperation("now")
                     } catch (err) {
                       console.error('Errore caricamento dati portfolio:', err);
@@ -641,7 +653,6 @@ const Portfolio: React.FC = () => {
                   }}
                   createBtnProps={{ label: 'Conferma operazione' }}
                   onSuccess={() => {
-                    console.log("chiamo la fica")
                     fetchPrices(portfolio_uid!);
                     fetchPortfolioInfo(portfolio_uid!);
                     fetchOperations(portfolio_uid!);

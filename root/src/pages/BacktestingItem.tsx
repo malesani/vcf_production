@@ -1,438 +1,854 @@
-import { MDBContainer, MDBRow, MDBCol, MDBCard, MDBCardBody, MDBBtn, MDBIcon, MDBCardTitle, MDBCardFooter, MDBBadge, MDBTable, MDBTableBody, MDBTableHead, MDBProgress, MDBProgressBar } from "mdb-react-ui-kit";
-import { GeneralForm, FieldConfig } from '../app_components/GeneralForm';
-import { ResponsiveLine } from '@nivo/line';
-import { ResponsivePie } from '@nivo/pie'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+    MDBContainer,
+    MDBRow,
+    MDBCol,
+    MDBCard,
+    MDBCardBody,
+    MDBBtn,
+    MDBIcon,
+    MDBCardFooter,
+    MDBBadge,
+    MDBTable,
+    MDBTableBody,
+    MDBTableHead,
+    MDBProgress,
+    MDBProgressBar,
+    MDBModal,
+    MDBModalBody,
+    MDBModalContent,
+    MDBModalDialog,
+    MDBModalHeader,
+    MDBModalTitle,
+    MDBSelect,
+    MDBInput,
+    MDBRange,
+    MDBAlert,
+} from "mdb-react-ui-kit";
 
-import { useEffect, useState } from "react";
-import type { BacktestWithAssets } from "../components/backtesting/contans";
-import type { BacktestConfig } from "../components/backtesting/contans";
-import { backtestingsList } from "../components/backtesting/contans";
-import { useParams } from 'react-router-dom';
+import { ResponsiveLine } from "@nivo/line";
+import { ResponsivePie } from "@nivo/pie";
+import { useParams } from "react-router-dom";
+import { useIsMobile } from "../app_components/ResponsiveModule";
+import { update_backtesting_assets, update_backtesting } from "../api_module/backtesting/BacktestingData";
+import { get_backtestingByUID, run_backtesting_series } from "../api_module/backtesting/BacktestingData";
+import { BacktestingInfo } from "../api_module/backtesting/constants";
+import { getStocksInfo } from '../api_module_v1/FinancialDataRequest';
+import { APIStockInfo } from '../api_module_v1/FinancialDataRequest'
+import { General_Loading } from '../app_components/General_Loading';
 
+type Point = { x: string; y: number };
+type Serie = { id: string; data: Point[] };
 
-const data = [
-    {
-        id: "strategy_A",
-        data: [
-            { x: "2024-01-01", y: 100 },
-            { x: "2024-01-02", y: 102 },
-            { x: "2024-01-03", y: 98 },
-            { x: "2024-01-04", y: 105 },
-            { x: "2024-01-05", y: 110 },
-            { x: "2024-01-06", y: 108 },
-            { x: "2024-01-07", y: 115 },
-            { x: "2024-01-08", y: 118 },
-            { x: "2024-01-09", y: 112 },
-            { x: "2024-01-10", y: 120 }
-        ]
-    }
-];
-
-
-const dataPie = [
-    {
-        "id": "go",
-        "label": "go",
-        "value": 157,
-        "color": "hsl(160, 70%, 50%)"
-    },
-    {
-        "id": "css",
-        "label": "css",
-        "value": 215,
-        "color": "hsl(12, 70%, 50%)"
-    },
-    {
-        "id": "make",
-        "label": "make",
-        "value": 149,
-        "color": "hsl(339, 70%, 50%)"
-    },
-    {
-        "id": "haskell",
-        "label": "haskell",
-        "value": 55,
-        "color": "hsl(58, 70%, 50%)"
-    },
-    {
-        "id": "lisp",
-        "label": "lisp",
-        "value": 279,
-        "color": "hsl(80, 70%, 50%)"
-    }
-]
-
-const funds = [
-    {
-        name: "Vanguard Total Stock Market Index Fund",
-        index: "CRSP U.S.",
-        performance: 12.4,
-        color: "primary",
-        allocation: 20,
-    },
-    {
-        name: "iShares S&P Global 100 Index Fund",
-        index: "S&P 100",
-        performance: 15.2,
-        color: "secondary",
-        allocation: 30,
-    },
-    {
-        name: "Fidelity 500 Index Fund",
-        index: "S&P 500",
-        performance: 18.7,
-        color: "info",
-        allocation: 20,
-    },
-    {
-        name: "Vanguard S&P 500 ETF",
-        index: "S&P 500",
-        performance: 19.1,
-        color: "success",
-        allocation: 30,
-    },
-];
-
-
-//creazione del form
-const Simulation_FormFields: FieldConfig<BacktestConfig>[] = [
-    {
-        name: "totalInvested",
-        label: "",
-        required: false,
-        grid: { md: 12 },
-        type: "number",
-        properties: { minValue: 500, maxValue: 10000, defaultValue: 1000 },
-        extraElements: [{
-            position: "before",
-            grid: { md: 12 },
-            element:
-
-                <div className="">
-                    Totale investito
+/** ==================== SECTION HEADER ==================== */
+function SectionHeader({
+    ui,
+    title,
+    subtitle,
+    icon = "chart-column",
+    right,
+    onEdit,
+}: {
+    ui: any;
+    title: string;
+    subtitle?: string;
+    icon?: string;
+    right?: React.ReactNode;
+    onEdit?: () => void;
+}) {
+    return (
+        <div
+            className={`${ui.headerPadClass} d-flex justify-content-between align-items-center`}
+            style={{
+                backgroundColor: "rgb(38, 53, 80)",
+                color: "white",
+                borderTopRightRadius: "0.75rem",
+                borderTopLeftRadius: "0.75rem",
+                gap: 12,
+            }}
+        >
+            <div style={{ minWidth: 0 }}>
+                <div className="d-flex align-items-center">
+                    <MDBIcon fas icon={icon} className="me-2 fs-5 text-white" />
+                    <span className="fw-bold" style={ui.hSection}>
+                        {title}
+                    </span>
                 </div>
+                {subtitle && (
+                    <small className="text-white-50" style={ui.subSection}>
+                        {subtitle}
+                    </small>
+                )}
+            </div>
 
-        }]
+            {right ? <div className="flex-shrink-0">{right}</div> : null}
 
-    },
-    {
-        name: "periodYears",
-        label: "",
-        required: false, grid: { md: 12 },
-        type: "number",
-        properties: {
-            minValue: 1,
-            maxValue: 50,
-            defaultValue: 1
-        },
-        extraElements: [{
-            position: "before",
-            grid: { md: 12 },
-            element:
+            {onEdit ? (
+                <MDBBtn className="py-2" color="secondary" onClick={onEdit}>
+                    edit
+                </MDBBtn>
+            ) : null}
+        </div>
+    );
+}
 
-                <div className="">
-                    Orizzonte Temporale
+/** ==================== STAT CARD ==================== */
+function StatCard({ ui, label, value }: { ui: any; label: string; value: string }) {
+    return (
+        <MDBCard className="shadow-sm rounded-4 border-0 h-100">
+            <MDBCardBody style={{ padding: 12 }}>
+                <div className="text-muted" style={{ ...ui.textSmall, fontSize: 12 }}>
+                    {label}
                 </div>
-
-        }]
-    },
-    {
-        name: "monthlyContribution",
-        label: "",
-        required: false,
-        grid: { md: 12 },
-        type: "number",
-        properties: {
-            minValue: 100,
-            maxValue: 10000,
-            defaultValue: 500
-        },
-        extraElements: [{
-            position: "before",
-            grid: { md: 12 },
-            element:
-
-                <div className="">
-                    Contributo mensile
+                <div className="fw-bold" style={{ ...ui.textBody, marginTop: 4 }}>
+                    {value}
                 </div>
+            </MDBCardBody>
+        </MDBCard>
+    );
+}
 
-        }]
-    },
-]
+/** ==================== MODAL ASSETS TYPES ==================== */
+type AssetRow = {
+    key: string;
+    symbol: string;
+    weight_pct: number;
+};
 
+const genKey = () =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `k_${Date.now()}_${Math.random()}`;
 
-
+const makeRow = (seed?: Partial<AssetRow>): AssetRow => ({
+    key: genKey(),
+    symbol: seed?.symbol ?? "",
+    weight_pct: seed?.weight_pct ?? 0,
+});
 
 const BacktestingItem: React.FC = () => {
     const { bt_item_uid } = useParams<{ bt_item_uid: string }>();
+    const isMobile = useIsMobile(992);
+    const [loading, setLoading] = useState(true);
 
-    //cons mutabili per manipolare il rendirizzato della pagina 
+    // state 
+    const [title, setTitle] = useState<string>("");
+    const [description, setDescription] = useState<string>("");
     const [investimentoIniziale, setInvestimentoInizialeProp] = useState<number>();
     const [contributoMensile, setContributoMensile] = useState<number>();
     const [tempoInvestimento, setTempoInvestimento] = useState<number>();
 
-    const [backtest, setBacktest] = useState<BacktestWithAssets | null>(null);
-    const [loading, setLoading] = useState(true);
+    //stato backtest backtestRes.data => bt
+    const [backtest, setBacktest] = useState<BacktestingInfo | null>(null);
 
-    const totalAllocation = funds.reduce((acc, f) => acc + f.allocation, 0);
+    //stato  bt.assets = gli assets di backtest
+    const [assetsDb, setAssetsDb] = useState<Array<{ symbol: string; weight_pct: number }>>([]);
 
-    function getBacktestingById(
-        test_uid: string
-    ): Promise<BacktestWithAssets | undefined> {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const backtest = backtestingsList.find(
-                    (bt) => bt.test_uid === test_uid
+    //risultato data per nivo backtesting
+    const [miniDataDb, setMiniDataDb] = useState<Serie[]>([]);
+
+
+    /** ======= modal editor state ======= */
+    const [modalOpen, setModalOpen] = useState<boolean>(false);
+    const [savingAssets, setSavingAssets] = useState(false);
+
+    //per generare le rows vuote e con dati caricati
+    const [assetRows, setAssetRows] = useState<AssetRow[]>([]);
+
+    //per save blocco sinistra 
+    const [savingParams, setSavingParams] = useState(false);
+
+    //per caricamento e pre caricamento dati del edit degli assets
+    const [stocksInfoOptions, setStocksInfoOptions] = useState<APIStockInfo[]>([]);
+    const [query, setQuery] = useState<String>("")
+
+    const totalAllocation = assetsDb.reduce((acc, f) => acc + f.weight_pct, 0);
+
+    const toggleModal = () => setModalOpen((v) => !v);
+
+    const dataPie = useMemo(() => {
+        // se non ho asset -> 100% liquidità
+        if (!assetsDb || assetsDb.length === 0) {
+            return [{ id: "liquidita", label: "liquidità", value: 100 }];
+        }
+
+        // altrimenti pie dagli asset
+        return assetsDb.map((a) => ({
+            id: a.symbol,
+            label: a.symbol,
+            value: a.weight_pct,
+        }));
+    }, [assetsDb]);
+
+
+
+    const ui = useMemo(() => {
+        return {
+            hSection: { fontSize: isMobile ? "14px" : "1rem" },
+            subSection: { fontSize: isMobile ? "11px" : "0.8rem" },
+            hCardTitle: { fontSize: isMobile ? "13px" : "" },
+            pill: { fontSize: isMobile ? "10px" : "0.75rem" },
+            textSmall: { fontSize: isMobile ? "12px" : "" },
+            textBody: { fontSize: isMobile ? "13px" : "0.95rem" },
+            numberBig: { fontSize: isMobile ? "1.6rem" : "2rem" },
+
+            headerPadClass: isMobile ? "p-3" : "p-3 py-md-3 px-md-4",
+            bodyPadClass: isMobile ? "p-3" : "p-3 p-md-4",
+
+            label: { color: "#21384A", fontWeight: 700, fontSize: isMobile ? "12px" : "13px" },
+        };
+    }, [isMobile]);
+
+    ///////////////////////////////////////////////////
+    const isMountedRef = useRef(true);
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
+
+
+    const loadStocksInfo = useCallback(async () => {
+        try {
+            const resp = await getStocksInfo();
+            if (resp.response.success && resp.data && isMountedRef.current) {
+                setStocksInfoOptions(
+                    resp.data.map(stockInfo => ({
+                        symbol: stockInfo.symbol,
+                        name: `${stockInfo.name} (${stockInfo.symbol})`,
+                    }))
                 );
-                resolve(structuredClone(backtest));
-            }, 300);
-        });
-    }
+            }
+        } catch (err) {
+            console.error("Errore caricamento Stocks Info:", err);
+        }
+    }, []);
+
+    const loadBacktest = useCallback(async (uid: string) => {
+        try {
+            const backtestRes = await get_backtestingByUID({ backtesting_uid: uid });
+            if (!isMountedRef.current) return;
+
+            const bt = backtestRes?.response?.success && backtestRes.data ? backtestRes.data : null;
+            setBacktest(bt);
+
+            if (!bt) {
+                setAssetsDb([]);
+                setMiniDataDb([]);
+                return;
+            }
+
+            setInvestimentoInizialeProp(bt.cash_position);
+            setContributoMensile(bt.automatic_savings);
+            setTempoInvestimento(bt.time_horizon_years);
+            setTitle(bt.title);
+
+            const dbAssets = Array.isArray(bt.assets)
+                ? bt.assets
+                    .map((a: any) => ({
+                        symbol: String(a.symbol ?? "").trim(),
+                        weight_pct: Number(a.weight_pct ?? 0),
+                    }))
+                    .filter((a) => a.symbol && Number.isFinite(a.weight_pct) && a.weight_pct > 0)
+                : [];
+
+            setAssetsDb(dbAssets);
+
+            const years = Number(bt.time_horizon_years ?? 1);
+            const safeYears = Number.isFinite(years) && years > 0 ? years : 1;
+
+            const seriesRes = await run_backtesting_series({
+                backtesting_uid: uid,
+                years: safeYears,
+                interval: "1month",
+            });
+
+            if (!isMountedRef.current) return;
+
+            if (!seriesRes.response.success || !seriesRes.data?.series) {
+                setMiniDataDb([]);
+                return;
+            }
+
+            const portfolioSerie =
+                seriesRes.data.series.find((s) => String(s.id).toLowerCase() === "portfolio") ??
+                seriesRes.data.series.find((s) => String(s.id).toLowerCase() === "portf") ??
+                seriesRes.data.series[0];
+
+            setMiniDataDb(portfolioSerie ? ([portfolioSerie as Serie] as Serie[]) : []);
+        } catch (err) {
+            console.error("Errore caricamento backtesting", err);
+            if (isMountedRef.current) {
+                setAssetsDb([]);
+                setMiniDataDb([]);
+            }
+        }
+    }, []);
+
+    const loadAll = useCallback(async (uid: string) => {
+        setLoading(true);
+        try {
+            await Promise.all([
+                loadStocksInfo(),
+                loadBacktest(uid),
+            ]);
+        } finally {
+            if (isMountedRef.current) setLoading(false);
+        }
+    }, [loadStocksInfo, loadBacktest]);
+
 
     useEffect(() => {
         if (!bt_item_uid) return;
+        loadAll(bt_item_uid);
+    }, [bt_item_uid, loadAll]);
 
-        setLoading(true);
 
-        getBacktestingById(bt_item_uid)
-            .then((data) => {
-                setBacktest(data ?? null);
-                console.log(data)
-                // opcional: inicializar tus 3 estados con los valores del backtest
-                if (data) {
-                    setInvestimentoInizialeProp(data.totalInvested);
-                    setContributoMensile(data.monthlyContribution);
-                    setTempoInvestimento(data.periodYears);
-                }
-            })
-            .finally(() => setLoading(false));
-    }, [bt_item_uid]);
+    const stocksInfoOptions50 = useMemo(() => {
+        const q = (query ?? "").toString().trim().toLowerCase();
 
+        const filtered =
+            q.length === 0
+                ? stocksInfoOptions
+                : stocksInfoOptions.filter((opt) =>
+                    opt.name.toLowerCase().includes(q) ||
+                    opt.symbol.toLowerCase().includes(q)
+                );
+
+        // simboli già selezionati nelle righe
+        const selectedSymbols = new Set(assetRows.map(r => r.symbol).filter(Boolean));
+
+        // lookup veloce
+        const bySymbol = new Map(stocksInfoOptions.map(o => [o.symbol, o] as const));
+
+        // merge + dedupe O(n) con Map
+        const merged = new Map<string, APIStockInfo>();
+
+        // prima metto i selezionati (così entrano sempre nei 50)
+        for (const sym of selectedSymbols) {
+            const opt = bySymbol.get(sym) ?? { symbol: sym, name: sym };
+            merged.set(sym, opt);
+        }
+
+        // poi il filtered
+        for (const opt of filtered) {
+            if (!merged.has(opt.symbol)) merged.set(opt.symbol, opt);
+            if (merged.size >= 50) break;
+        }
+
+        return Array.from(merged.values());
+    }, [stocksInfoOptions, assetRows, query]);
+
+    const selectData50 = useMemo(
+        () =>
+            stocksInfoOptions50.map((opt) => ({
+                text: opt.name,
+                value: opt.symbol,
+            })),
+        [stocksInfoOptions50]
+    );
+    const lastQRef = useRef("");
+
+
+    const searchFn = useCallback((q: string, data: any[]) => {
+        const qq = (q ?? "").toLowerCase().trim();
+
+        if (q !== lastQRef.current) {
+            lastQRef.current = q;
+            setQuery(q); // opcional: solo si querés tenerlo en state para otra cosa
+        }
+
+        const filtered = qq.length === 0
+            ? data
+            : data.filter(opt =>
+                String(opt.text ?? "").toLowerCase().includes(qq) ||
+                String(opt.value ?? "").toLowerCase().includes(qq)
+            );
+
+        return filtered.slice(0, 50);
+    }, []);
+
+
+    /** ==================== PRELOAD ROWS WHEN MODAL OPENS ==================== */
+    useEffect(() => {
+        if (!modalOpen) return;
+        setAssetRows(assetsDb.length ? assetsDb.map((a) => makeRow({ symbol: a.symbol, weight_pct: a.weight_pct })) : [makeRow()]);
+    }, [modalOpen, assetsDb]); // eslint-disable-line react-hooks/exhaustive-deps
+
+
+    /** ==================== ROW HANDLERS ==================== */
+    const addEmptyRow = () => setAssetRows((prev) => [...prev, makeRow()]);
+
+    const removeRow = (key: string) => setAssetRows((prev) => prev.filter((r) => r.key !== key));
+
+    const updateRow = (key: string, patch: Partial<AssetRow>) => setAssetRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+
+    const totalWeight = useMemo(
+        () => assetRows.reduce((acc, r) => acc + (Number(r.weight_pct) || 0), 0),
+        [assetRows]
+    );
+
+
+
+    /** ==================== SAVE ASSETS (REEMPLAZA handleInsertTestAssets) ==================== */
+    const handleSaveAssetsFromModal = async () => {
+
+        if (!bt_item_uid) return;
+
+        // limpia + valida básico
+        const cleaned = assetRows
+            .map((r) => ({
+                symbol: String(r.symbol ?? "").trim().toUpperCase(),
+                weight_pct: Number(r.weight_pct ?? 0),
+            }))
+            .filter((a) => a.symbol && Number.isFinite(a.weight_pct) && a.weight_pct > 0);
+
+        // merge duplicados (suma pesos)
+        const mergedMap = new Map<string, number>();
+        for (const a of cleaned) mergedMap.set(a.symbol, (mergedMap.get(a.symbol) ?? 0) + a.weight_pct);
+
+        const merged = Array.from(mergedMap.entries()).map(([symbol, weight_pct]) => ({ symbol, weight_pct }));
+
+
+        try {
+            setSavingAssets(true);
+
+            const res = await update_backtesting_assets({
+                backtesting_uid: bt_item_uid,
+                assets: merged,
+            });
+
+            console.log("SAVE ASSETS RESULT:", res);
+
+            // actualiza badges (y a futuro puedes refrescar del backend si quieres)
+            setAssetsDb(merged);
+            loadAll(bt_item_uid);
+            setModalOpen(false);
+        } catch (err) {
+            console.error("Errore salvataggio assets", err);
+        } finally {
+            setSavingAssets(false);
+        }
+    };
+
+    /** ==================== SAVE Normal Params ==================== */
+    const handleSaveParams = async () => {
+        if (!bt_item_uid) return;
+        setSavingParams(true);
+        try {
+            const payload = {
+                backtesting_uid: bt_item_uid,
+                title: title.trim(),
+                description: description.trim(),
+                cash_position: investimentoIniziale,
+                automatic_savings: contributoMensile,
+                time_horizon_years: tempoInvestimento,
+            };
+
+            const res = await update_backtesting(payload);
+
+            console.log("UPDATE BACKTESTING RESULT:", res);
+
+            // ✅ opcional: mantener backtest en sync sin refetch
+            if (res.response.success) {
+                setBacktest((prev) =>
+                    prev ? ({ ...prev, ...payload } as any) : (payload as any)
+                );
+            }
+            loadAll(bt_item_uid);
+        } catch (err) {
+            console.error("Errore update_backtesting", err);
+        } finally {
+            setSavingParams(false);
+        }
+    };
+
+    const handleChangeRowSymbol = (rowKey: string, selected: any) => {
+        const item = Array.isArray(selected) ? selected[0] : selected; // por si viene array
+        const newSymbol = item?.value ? String(item.value) : "";
+        if (!newSymbol) return;
+
+        updateRow(rowKey, { symbol: newSymbol });
+    };
+
+    /** ==================== UI ==================== */
     return (
         <>
-            <MDBContainer>
-                <MDBRow className='align-items-center mb-3'>
-                    <MDBCol>
-                        <div className="py-2 mb-2">
-                            <div className="d-flex flex-row align-items-center">
-                                {/* <i className="fas fa-list-alt me-2"></i> */}
-                                <span className="fs-3 fw-bold text-dark">
-                                    TEST SV
-                                </span>
+            <MDBContainer fluid className="py-3 py-md-4 px-0">
+                {/* PAGE HEADER */}
+                <MDBRow className="g-3 mb-4">
+                    <MDBCol xs="12">
+                        <div>
+                            <div className="fw-bold" style={{ fontSize: isMobile ? 20 : 28, color: "#111827" }}>
+                                {backtest?.title ?? "Backtesting"}
                             </div>
-                            <div className="d-flex">
-                                <span className="text-muted fs-6">
-                                    Lorem ipsum dolor sit amet consectetur.
-                                </span>
+                            <div className="text-muted" style={ui.textBody}>
+                                {backtest?.description ?? "Backtesting"}
                             </div>
                         </div>
                     </MDBCol>
                 </MDBRow>
-                <MDBRow className="align-items-stretch mb-4">
-                    <MDBCol className="col-6 h-100">
-                        <MDBCard className="h-100" style={{ minHeight: "600px" }}>
-                            <MDBCardBody className="d-flex flex-column">
-                                <MDBCardTitle className=" small mb-3">
-                                    Parametri
-                                </MDBCardTitle>
 
-                                <div className="d-flex justify-content-center flex-grow-1">
-                                    <GeneralForm<BacktestConfig>
-                                        mode="create"
-                                        fields={Simulation_FormFields}
-                                        disableSubmit={false}
-                                        createBtnProps={
-                                            {
-                                                icon: "save",
-                                                label: "Salva",
-                                                labelSaving: "Salvataggio in corso",
-                                                color: "primary"
-                                            }
-                                        }
-                                        createData={async (payload: BacktestConfig) => {
-                                            return {
-                                                response: {
-                                                    success: true,
-                                                    message: "Created successfully"
-                                                },
-                                                data: payload
-                                            };
-                                        }}
-                                        onChange={(formData) => {
-                                            setInvestimentoInizialeProp(formData.periodYears || 0);
-                                            setContributoMensile(formData.monthlyContribution || 0);
-                                            setTempoInvestimento(formData.totalInvested || 0);
-                                        }}
-                                    />
-                                </div>
-                            </MDBCardBody>
-                        </MDBCard>
-                    </MDBCol>
+                {/* TOP GRID */}
+                <MDBRow className="g-3 mb-4 align-items-stretch">
+                    {/* LEFT */}
+                    <MDBCol xs="12" lg="6">
+                        <MDBCard className="shadow-sm rounded-4 border-0 h-100">
+                            <SectionHeader ui={ui} icon="sliders-h" title="Parametri" subtitle="Imposta i valori della simulazione" />
+                            {loading ? (
+                                <General_Loading />
+                            ) : (
+                                <MDBCardBody className={ui.bodyPadClass}>
+                                    <div className="d-flex justify-content-center">
+                                        <div style={{ width: "100%", maxWidth: 520 }}>
+                                            <div className={ui.bodyPadClass}>
+                                                <div className="d-flex justify-content-center">
+                                                    <div style={{ width: "100%", maxWidth: 520 }}>
+                                                        <MDBRow className="g-3">
+                                                            <MDBCol md="12">
+                                                                <MDBInput
+                                                                    label="Titolo"
+                                                                    value={title}
+                                                                    onChange={(e) => setTitle(e.target.value)}
+                                                                />
+                                                            </MDBCol>
 
-                    {/* COLUMNA DERECHA */}
-                    <MDBCol className="col-6 h-100">
-                        <MDBCard className="d-flex flex-column" style={{ minHeight: "600px", maxHeight: "600px" }}>
-                            <MDBCardBody className="flex-grow-1">
-                                <MDBCardTitle className="small mb-3">
-                                    Allocazione Portafoglio
-                                </MDBCardTitle>
+                                                            <MDBCol md="12">
+                                                                <MDBInput
+                                                                    label="Descrizione"
+                                                                    value={description}
+                                                                    onChange={(e) => setDescription(e.target.value)}
+                                                                />
+                                                            </MDBCol>
 
-                                <div style={{ width: "100%", height: "250px" }}>
-                                    <ResponsivePie
-                                        data={dataPie}
-                                        margin={{ top: 40, right: 40, bottom: 40, left: 40 }}
-                                        innerRadius={0.5}
-                                        padAngle={0.6}
-                                        cornerRadius={2}
-                                        activeOuterRadiusOffset={8}
-                                        arcLinkLabelsSkipAngle={10}
-                                        arcLinkLabelsTextColor="#333333"
-                                        arcLinkLabelsThickness={2}
-                                        arcLinkLabelsColor={{ from: "color" }}
-                                        arcLabelsSkipAngle={10}
-                                        arcLabelsTextColor={{
-                                            from: "color",
-                                            modifiers: [["darker", 2]]
-                                        }}
-                                    />
-                                </div>
-                            </MDBCardBody>
+                                                            <MDBCol md="12">
+                                                                <MDBInput
+                                                                    label="Totale Investito"
+                                                                    type="number"
+                                                                    min={0}
+                                                                    step={1}
+                                                                    value={String(investimentoIniziale ?? 0)}
+                                                                    onChange={(e) => setInvestimentoInizialeProp(Number(e.target.value))}
+                                                                />
+                                                            </MDBCol>
 
-                            <MDBCardFooter className="text-muted py-0 pb-3" style={{ border: "none" }}>
-                                <MDBTable align="middle" hover responsive small>
-                                    <MDBTableHead>
-                                        <tr>
-                                            <th>Fondo</th>
-                                            <th>Indice</th>
-                                            <th>Performance</th>
-                                            <th>Assegnazione</th>
-                                        </tr>
-                                    </MDBTableHead>
+                                                            <MDBCol md="12">
+                                                                <MDBInput
+                                                                    label="Contributo Mensile"
+                                                                    type="number"
+                                                                    min={0}
+                                                                    step={1}
+                                                                    value={String(contributoMensile ?? 0)}
+                                                                    onChange={(e) => setContributoMensile(Number(e.target.value))}
+                                                                />
+                                                            </MDBCol>
 
-                                    <MDBTableBody>
-                                        {funds.map((fund) => (
-                                            <tr key={fund.name}>
-                                                <td>{fund.name}</td>
-                                                <td>{fund.index}</td>
-                                                <td>
-                                                    <MDBBadge color="success" light>
-                                                        +{fund.performance}%
-                                                    </MDBBadge>
-                                                </td>
-                                                <td style={{ minWidth: 140 }}>
-                                                    <div className="d-flex align-items-center gap-2">
-                                                        <MDBProgress height="6" className="flex-grow-1">
-                                                            <MDBProgressBar
-                                                                width={fund.allocation}
-                                                                backgroundColor={fund.color}
-                                                            />
-                                                        </MDBProgress>
-                                                        <small>{fund.allocation}%</small>
+
+                                                            <MDBCol xs="12" md="12">
+                                                                <label className="form-label fw-bold" style={ui.label}>
+                                                                    Orizzonte passato: {tempoInvestimento} anni
+                                                                </label>
+                                                                <MDBRange
+                                                                    min="1"
+                                                                    max="40"
+                                                                    value={String(tempoInvestimento ?? 1)}
+                                                                    onChange={(e) => setTempoInvestimento(Number(e.target.value))}
+                                                                />
+                                                            </MDBCol>
+
+                                                            <MDBCol md="12" className="d-flex justify-content-center gap-2 mt-2">
+                                                                <MDBBtn
+                                                                    color="light"
+                                                                    className="border w-50"
+                                                                    onClick={() => {
+                                                                        // reset a valores del backtest (como "cancel changes")
+                                                                        if (!backtest) return;
+                                                                        setTitle(backtest.title ?? "");
+                                                                        setDescription(backtest.description ?? "");
+                                                                        setInvestimentoInizialeProp(Number(backtest.cash_position ?? 0));
+                                                                        setContributoMensile(Number(backtest.automatic_savings ?? 0));
+                                                                        setTempoInvestimento(Number(backtest.time_horizon_years ?? 1));
+                                                                    }}
+                                                                >
+                                                                    Reset
+                                                                </MDBBtn>
+
+                                                                <MDBBtn className="w-50" onClick={handleSaveParams} disabled={savingParams || !bt_item_uid}>
+                                                                    {savingParams ? "Salvataggio..." : "Salva le modifiche"}
+                                                                </MDBBtn>
+                                                            </MDBCol>
+                                                        </MDBRow>
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </MDBTableBody>
-                                </MDBTable>
-
-                                {/* <div className="d-flex justify-content-end mt-2">
-                                    <small>
-                                        Allocazione totale:&nbsp;
-                                        <span className="text-success fw-bold">{totalAllocation}%</span>
-                                    </small>
-                                </div> */}
-                            </MDBCardFooter>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </MDBCardBody>
+                            )}
                         </MDBCard>
-                    </MDBCol>
-                </MDBRow>
+                    </MDBCol >
 
-                <MDBRow className='align-items-center mb-3'>
-                    <MDBCol className="col-12">
-                        <MDBCard className="" style={{ minHeight: "208px" }}>
-                            <MDBCardBody className="d-flex flex-column align-items-center justify-content-center">
-                                <div style={{ width: "100%", height: "400px" }}>
-                                    <ResponsiveLine
-                                        data={data}
-                                        margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
-                                        yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: false }}
-                                        axisBottom={{ legend: 'date', legendOffset: 36 }}
-                                        axisLeft={{ legend: 'value', legendOffset: -40 }}
-                                        enableGridY={false}
-                                        pointSize={10}
-                                        useMesh={true}
-                                        colors={["rgb(21,93,252)"]}
-                                    />
-                                </div>
+                    {/* RIGHT */}
+                    < MDBCol xs="12" lg="6" >
+                        <MDBCard className="loading shadow-sm rounded-4 border-0 h-100" style={{ overflow: "hidden" }}>
+                            <SectionHeader
+                                ui={ui}
+                                icon="chart-pie"
+                                title="Allocazione Portafoglio"
+                                subtitle={`Allocazione totale: ${totalAllocation}%`}
+                                onEdit={() => setModalOpen(true)}
+                            />
+
+                            {loading ? (
+                                <General_Loading />
+                            ) : (
+                                <>
+                                    <MDBCardBody className={ui.bodyPadClass}>
+                                        <div style={{ width: "100%", height: isMobile ? 220 : 260 }}>
+                                            <ResponsivePie
+                                                data={dataPie}
+                                                margin={isMobile ? { top: 10, right: 10, bottom: 50, left: 10 } : { top: 10, right: 10, bottom: 70, left: 10 }}
+                                                innerRadius={0.7}
+                                                padAngle={0.6}
+                                                cornerRadius={2}
+                                                activeOuterRadiusOffset={8}
+                                                enableArcLinkLabels={false}
+                                                enableArcLabels={false}
+                                                legends={[
+                                                    {
+                                                        anchor: "bottom",
+                                                        direction: "row",
+                                                        translateY: isMobile ? 38 : 55,
+                                                        itemWidth: 80,
+                                                        itemHeight: 18,
+                                                        itemsSpacing: 10,
+                                                        symbolSize: 10,
+                                                        symbolShape: "circle",
+                                                    },
+                                                ]}
+                                            />
+                                        </div>
+                                    </MDBCardBody>
+
+                                    <MDBCardFooter className="pt-0 pb-3 px-3 px-md-4" style={{ border: "none" }}>
+                                        <MDBTable align="middle" hover responsive small className="mb-0">
+                                            <MDBTableHead>
+                                                <tr style={{ fontSize: isMobile ? 12 : 13 }}>
+                                                    <th>Fondo</th>
+                                                    <th>Assegnazione</th>
+                                                </tr>
+                                            </MDBTableHead>
+
+                                            <MDBTableBody style={{ fontSize: isMobile ? 12 : 13 }}>
+                                                {assetsDb.map((fund) => (
+                                                    <tr key={fund.symbol}>
+                                                        <td style={{ minWidth: isMobile ? 160 : 220 }}>
+                                                            <div className="fw-semibold" style={{ lineHeight: 1.2 }}>
+                                                                {fund.symbol}
+                                                            </div>
+                                                        </td>
+                                                        <td style={{ minWidth: isMobile ? 120 : 160 }}>
+                                                            <div className="d-flex align-items-center gap-2">
+                                                                <MDBProgress height="6" className="flex-grow-1">
+                                                                    <MDBProgressBar width={fund.weight_pct} />
+                                                                </MDBProgress>
+                                                                <small>{fund.weight_pct}%</small>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </MDBTableBody>
+                                        </MDBTable>
+                                    </MDBCardFooter>
+                                </>
+                            )}
+
+                        </MDBCard>
+                    </MDBCol >
+                </MDBRow >
+
+                {/* LINE CHART */}
+                < MDBRow className="g-3 mb-4" >
+                    <MDBCol xs="12">
+                        <MDBCard className="shadow-sm rounded-4 border-0">
+                            <SectionHeader ui={ui} icon="chart-line" title="Andamento storico" subtitle="Risultati della strategia nel tempo" />
+                            <MDBCardBody className={ui.bodyPadClass}>
+                                {loading ? (
+                                    <General_Loading />
+                                ) : (
+
+                                    <div style={{ width: "100%", height: isMobile ? 300 : 400 }}>
+                                        <div className="d-flex align-items-center justify-content-between mb-2">
+                                            <div className="small text-muted">Andamento (DB) - Assets + Portfolio</div>
+
+                                            <div className="d-flex gap-2 flex-wrap justify-content-end">
+                                                {assetsDb.length > 0 ? (
+                                                    assetsDb.map((a) => (
+                                                        <MDBBadge key={a.symbol} color="light" className="text-dark border">
+                                                            {a.symbol} {a.weight_pct}%
+                                                        </MDBBadge>
+                                                    ))
+                                                ) : (
+                                                    <MDBBadge color="warning" light>
+                                                        Nessun asset nel DB
+                                                    </MDBBadge>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <ResponsiveLine
+                                            data={miniDataDb}
+                                            margin={isMobile ? { top: 20, right: 20, bottom: 60, left: 50 } : { top: 30, right: 30, bottom: 60, left: 60 }}
+                                            xScale={{ type: "point" }}
+                                            yScale={{ type: "linear", min: "auto", max: "auto", stacked: false }}
+                                            axisBottom={null}
+
+                                            enableGridY={false}
+                                            pointSize={isMobile ? 4 : 6}
+                                            useMesh={true}
+                                            enableSlices="x"
+                                            colors={["rgb(21,93,252)"]}
+                                            sliceTooltip={({ slice }) => (
+                                                <div
+                                                    style={{
+                                                        background: "white",
+                                                        padding: "9px 12px",
+                                                        border: "1px solid #ccc",
+                                                        borderRadius: 4,
+                                                    }}
+                                                >
+                                                    <div style={{ fontSize: 12, marginBottom: 6, color: "#555" }}>
+                                                        <strong>Data:</strong>{" "}
+                                                        {new Date(slice.points[0].data.x as string).toLocaleDateString("it-IT")}
+                                                    </div>
+
+                                                    {slice.points.map((point) => (
+                                                        <div
+                                                            key={point.id}
+                                                            style={{
+                                                                color: point.seriesColor,
+                                                                fontSize: 13,
+                                                                display: "flex",
+                                                                justifyContent: "space-between",
+                                                                gap: 12,
+                                                            }}
+                                                        >
+                                                            <span>{point.seriesId}</span>
+                                                            <strong>{Number(point.data.y).toFixed(2)} €</strong>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        />
+                                    </div>
+                                )}
                             </MDBCardBody>
                         </MDBCard>
                     </MDBCol>
+                </MDBRow >
 
-                </MDBRow>
-                <MDBRow className='align-items-center mb-4'>
-                    <MDBCol className="" style={{ width: "calc(100% / 5)" }}>
-                        <MDBCard className="" style={{ minHeight: "80px" }}>
-                            <MDBCardBody className="d-flex flex-column justify-content-center">
-                                <div className="my-2 text-muted" style={{ fontSize: "12px" }}>Importo investito</div>
-                                <div className="f-6" style={{ fontSize: "14px" }}>
-                                    10.000 €
+                {/* STATS */}
+                {/* < MDBRow className="g-3" >
+                    <MDBCol xs="6" md="4" lg="2">
+                        <StatCard ui={ui} label="Importo investito" value="10.000 €" />
+                    </MDBCol>
+                    <MDBCol xs="6" md="4" lg="2">
+                        <StatCard ui={ui} label="Crescita annuale composta" value="27,51%" />
+                    </MDBCol>
+                    <MDBCol xs="6" md="4" lg="2">
+                        <StatCard ui={ui} label="Valore patrimoniale netto" value="22.938 €" />
+                    </MDBCol>
+                    <MDBCol xs="6" md="4" lg="3">
+                        <StatCard ui={ui} label="Deviazione standard" value="59,19%" />
+                    </MDBCol>
+                    <MDBCol xs="12" md="4" lg="3">
+                        <StatCard ui={ui} label="Rapporto di Sharpe" value="0,66" />
+                    </MDBCol>
+                </MDBRow > */}
+            </MDBContainer >
+
+            {/* ==================== MODAL: EDIT ASSETS ==================== */}
+            < MDBModal tabIndex="-1" open={modalOpen} setOpen={setModalOpen} >
+                <MDBModalDialog centered size="lg">
+                    <MDBModalContent>
+                        <MDBModalHeader>
+                            <MDBModalTitle>Modifica Assets</MDBModalTitle>
+                            <MDBBtn className="btn-close" color="none" onClick={toggleModal} />
+                        </MDBModalHeader>
+
+                        <MDBModalBody className="mx-3">
+                            <div className="d-flex justify-content-between align-items-center mb-4">
+                                <div>
+                                    <div className="fw-bold">Assets</div>
+                                    <div className="text-muted" style={{ fontSize: 12 }}>
+                                        Totale pesi: <strong>{totalWeight}%</strong>
+                                    </div>
                                 </div>
 
-                            </MDBCardBody>
-                        </MDBCard>
-                    </MDBCol>
-                    <MDBCol className="" style={{ width: "calc(100% / 5)" }}>
-                        <MDBCard className="" style={{ minHeight: "80px" }}>
-                            <MDBCardBody className="d-flex flex-column justify-content-center">
+                                <MDBBtn color="light" className="border" onClick={addEmptyRow}>
+                                    <MDBIcon fas icon="plus" className="me-2" />
+                                    New
+                                </MDBBtn>
+                            </div>
 
-                                <div className="my-2 text-muted" style={{ fontSize: "12px" }}>Crescita annuale composta</div>
-                                <div className="f-6" style={{ fontSize: "14px" }}>
-                                    27,51%
+                            <MDBRow className="g-3">
+                                {assetRows.map((row) => (
+                                    <React.Fragment key={row.key}>
+                                        <MDBCol md="7">
+                                            <MDBSelect
+                                                data={selectData50}
+                                                value={row.symbol}
+                                                onChange={(val) => handleChangeRowSymbol(row.key, val)}
+                                                searchFn={searchFn}
+                                                search onResize={undefined} onResizeCapture={undefined} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined} />
+                                        </MDBCol>
+
+                                        <MDBCol md="3">
+                                            <MDBInput
+                                                label="Percentuale %"
+                                                type="number"
+                                                min={0}
+                                                step={1}
+                                                value={String(row.weight_pct ?? 0)}
+                                                onChange={(e) => updateRow(row.key, { weight_pct: Number(e.target.value) })}
+                                            />
+                                        </MDBCol>
+
+                                        <MDBCol md="2" className="d-flex align-items-end">
+                                            <MDBBtn color="danger" outline className="w-100" onClick={() => removeRow(row.key)}>
+                                                <MDBIcon fas icon="trash" />
+                                            </MDBBtn>
+                                        </MDBCol>
+                                    </React.Fragment>
+                                ))}
+                            </MDBRow>
+
+                            <div className="d-flex flex-column justify-content-end gap-2 mt-4">
+                                {totalWeight < 100 && (
+                                    <MDBAlert open className="w-100" color="warning">
+                                        Distribuisci {(100 - totalWeight).toFixed(0)}% in più per salvare il portafoglio.
+                                    </MDBAlert>
+                                )}
+                                <div className="w-100 d-flex flex-row justify-content-end gap-2">
+                                    <MDBBtn color="light" className="border" onClick={() => setModalOpen(false)}>
+                                        Cancel
+                                    </MDBBtn>
+
+                                    {totalWeight == 100 && (
+                                        <MDBBtn
+                                            disabled={savingAssets || !bt_item_uid || totalWeight !== 100}
+                                            onClick={handleSaveAssetsFromModal}>
+                                            {savingAssets ? "Saving..." : "Save assets"}
+                                        </MDBBtn>
+                                    )}
+
                                 </div>
-
-                            </MDBCardBody>
-                        </MDBCard>
-                    </MDBCol>
-                    <MDBCol className="" style={{ width: "calc(100% / 5)" }}>
-                        <MDBCard className="" style={{ minHeight: "80px" }}>
-                            <MDBCardBody className="d-flex flex-column justify-content-center">
-
-                                <div className="my-2 text-muted" style={{ fontSize: "12px" }}>Valore patrimoniale netto</div>
-                                <div className="f-6" style={{ fontSize: "14px" }}>
-                                    22.938 €
-                                </div>
-
-                            </MDBCardBody>
-                        </MDBCard>
-                    </MDBCol>
-                    <MDBCol className="" style={{ width: "calc(100% / 5)" }}>
-                        <MDBCard className="" style={{ minHeight: "80px" }}>
-                            <MDBCardBody className="d-flex flex-column justify-content-center">
-
-                                <div className="my-2 text-muted" style={{ fontSize: "12px" }}>Deviazione standard</div>
-                                <div className="f-6 " style={{ fontSize: "14px" }}>
-                                    59,19%
-                                </div>
-
-                            </MDBCardBody>
-                        </MDBCard>
-                    </MDBCol>
-                    <MDBCol className="" style={{ width: "calc(100% / 5)" }}>
-                        <MDBCard className="" style={{ minHeight: "80px" }}>
-                            <MDBCardBody className="d-flex flex-column justify-content-center">
-                                <div className="my-2 text-muted" style={{ fontSize: "12px" }}>Rapporto di Sharpe</div>
-                                <div className="f-6 " style={{ fontSize: "14px" }}>
-                                    0,66
-                                </div>
-
-                            </MDBCardBody>
-                        </MDBCard>
-                    </MDBCol>
-                </MDBRow>
-            </MDBContainer>
+                            </div>
+                        </MDBModalBody>
+                    </MDBModalContent>
+                </MDBModalDialog>
+            </MDBModal >
         </>
-    )
-}
+    );
+};
 
 export default BacktestingItem;
-
-

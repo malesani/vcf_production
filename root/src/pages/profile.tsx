@@ -1,9 +1,8 @@
-import React from "react";
+import React, { useMemo, useEffect } from "react";
 import {
     MDBBtn,
     MDBCard,
     MDBCardBody,
-    MDBCardHeader,
     MDBCardTitle,
     MDBCol,
     MDBContainer,
@@ -14,88 +13,134 @@ import {
     MDBTooltip,
 } from "mdb-react-ui-kit";
 
+import { useAuth } from "../auth_module/AuthContext";
+
+import { useIsMobile } from "../app_components/ResponsiveModule";
+
 const Profile: React.FC = () => {
+    const isMobile = useIsMobile(992);
+
+    const { userInfo } = useAuth();
+
+    const level = useMemo(() => {
+        const fallback = 1;
+        const raw = userInfo?.extended_fields;
+        if (!raw) return fallback;
+
+        try {
+            const parsed = JSON.parse(raw);
+            const lvl = Number(parsed?.level);
+            return Number.isFinite(lvl) && lvl > 0 ? lvl : fallback;
+        } catch {
+            return fallback;
+        }
+    }, [userInfo?.extended_fields]);
+
+    // ✅ “KIT” RESPONSIVE (igual que Dashboard)
+    const ui = useMemo(() => {
+        return {
+            // fuentes
+            hSection: { fontSize: isMobile ? "14px" : "1rem" }, // títulos de secciones (header azul)
+            subSection: { fontSize: isMobile ? "11px" : "0.8rem" }, // subtítulos header azul
+            hCardTitle: { fontSize: isMobile ? "13px" : "" }, // strong en cards pequeñas
+            pill: { fontSize: isMobile ? "10px" : "0.75rem" },
+            textSmall: { fontSize: isMobile ? "12px" : "" },
+            textBody: { fontSize: isMobile ? "13px" : "0.95rem" },
+            numberBig: { fontSize: isMobile ? "1.6rem" : "2rem" },
+
+            // paddings
+            headerPadClass: isMobile ? "p-3" : "p-3 py-md-3 px-md-4",
+            bodyPadClass: isMobile ? "p-3" : "p-3 p-md-4",
+
+            // labels
+            label: { color: "#21384A", fontWeight: 700, fontSize: isMobile ? "12px" : "13px" },
+
+            // alerts
+            alertText: { fontSize: isMobile ? "13px" : "14px" },
+            alertFine: { fontSize: isMobile ? "12px" : "12px" },
+        };
+    }, [isMobile]);
+
     return (
-        <MDBContainer>
-            {/* Header + pill button */}
+        <MDBContainer fluid className="py-3 py-md-4 px-0">
+            {/* ==================== TOP HEADER (titolo + pill) ==================== */}
             <MDBRow className="g-3 mb-4">
-                <MDBCol sm="12" style={{}}>
-                    <div className="py-2 mb-2">
-                        <div className="d-flex flex-row align-items-center">
-                            <span className="fs-3 fw-bold text-dark">Il mio profilo</span>
-                        </div>
-                        <div className="d-flex">
-                            <span className="text-muted fs-6">
-                                Monitora i tuoi progressi, la formazione e l’evoluzione dei tuoi
-                                investimenti
-                            </span>
+                <MDBCol xs="12">
+                    <div>
+                        <div className="d-flex flex-column gap-2">
+                            <div className="d-flex align-items-center">
+                                <span className="fw-bold" style={{ fontSize: isMobile ? 20 : 28, color: "#111827" }}>
+                                    Il mio profilo
+                                </span>
+                            </div>
+
+                            <div className="text-muted" style={ui.textBody}>
+                                Monitora i tuoi progressi, la formazione e l’evoluzione dei tuoi investimenti
+                            </div>
+
+                            <div className="pt-1">
+                                <MDBBtn
+                                    className="d-inline-flex align-items-center gap-2 px-4 py-2"
+                                    style={{
+                                        fontSize: isMobile ? "12px" : "13px",
+                                        backgroundColor: "rgba(21, 93, 252, 1)",
+                                        border: "3px solid rgba(21, 93, 252, 1)",
+                                        borderRadius: "14px",
+                                        boxShadow: "0 10px 22px rgba(21, 93, 252, 0.25)",
+                                    }}
+                                >
+                                    <MDBIcon className="me-1" far icon="star" />
+                                    <span>Livello {level} / 5</span>
+                                    <span style={{ opacity: 0.75 }}>·</span>
+                                    <span>In fase di risveglio</span>
+                                </MDBBtn>
+                            </div>
                         </div>
                     </div>
 
-                    <MDBBtn
-                        className="d-inline-flex align-items-center gap-2 px-4 py-2"
-                        style={{
-                            fontSize: "12px",
-                            backgroundColor: "rgba(21, 93, 252, 1)",
-                            border: "3px solid rgba(21, 93, 252, 1)",
-                            borderRadius: "14px",
-                            boxShadow: "0 10px 22px rgba(21, 93, 252, 0.25)",
-                        }}
-                    >
-                        <MDBIcon className="me-1" far icon="star" />
-                        <span>Livello 1 / 5</span>
-                        <span style={{ opacity: 0.75 }}>·</span>
-                        <span>In fase di risveglio</span>
-                    </MDBBtn>
                 </MDBCol>
             </MDBRow>
 
-            {/* Info card */}
-            <MDBRow className="align-items-center mb-4">
-                <MDBCol className="col-12">
+            {/* ==================== INFO CARD (stile “blue box” come Dashboard) ==================== */}
+            <MDBRow className="g-3 mb-4">
+                <MDBCol xs="12">
                     <MDBCard
+                        className="border-0 rounded-4"
                         style={{
-                            border: "solid 1px rgba(190, 219, 255, 1)",
+                            border: "1px solid rgba(190, 219, 255, 1)",
                             backgroundColor: "rgb(239,246,255)",
                         }}
                     >
-                        <MDBCardBody className="d-flex flex-row py-3">
-                            <div className="me-3">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 20 20"
-                                    fill="none"
-                                >
-                                    <path
-                                        d="M13.333 5.83325H18.333V10.8333"
-                                        stroke="#000000"
-                                        strokeWidth="1.66667"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                    <path
-                                        d="M18.3337 5.83325L11.2503 12.9166L7.08366 8.74992L1.66699 14.1666"
-                                        stroke="#000000"
-                                        strokeWidth="1.66667"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                            </div>
+                        <MDBCardBody className={ui.bodyPadClass}>
+                            <div className="d-flex align-items-start gap-3">
+                                <div className="flex-shrink-0" style={{ marginTop: 2 }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                        <path
+                                            d="M13.333 5.83325H18.333V10.8333"
+                                            stroke="#155DFC"
+                                            strokeWidth="1.66667"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                        <path
+                                            d="M18.3337 5.83325L11.2503 12.9166L7.08366 8.74992L1.66699 14.1666"
+                                            stroke="#155DFC"
+                                            strokeWidth="1.66667"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                    </svg>
+                                </div>
 
-                            <div>
-                                <MDBCardTitle className="small fw-bold mb-1">
-                                    Il tuo livello attuale
-                                </MDBCardTitle>
+                                <div style={{ minWidth: 0 }}>
+                                    <MDBCardTitle className="fw-bold mb-1" style={ui.textBody}>
+                                        Il tuo livello attuale
+                                    </MDBCardTitle>
 
-                                <div className="fw-bold small mb-0">
-                                    <span style={{ color: "#155DFC" }}>
-                                        Hai iniziato il percorso e stai prendendo coscienza della tua
-                                        situazione finanziaria. Continua ad acquisire le informazioni
-                                        fondamentali per migliorare il tuo livello.
-                                    </span>
+                                    <div className="fw-bold mb-0" style={{ color: "#155DFC", ...ui.textSmall }}>
+                                        Hai iniziato il percorso e stai prendendo coscienza della tua situazione finanziaria. Continua ad
+                                        acquisire le informazioni fondamentali per migliorare il tuo livello.
+                                    </div>
                                 </div>
                             </div>
                         </MDBCardBody>
@@ -103,36 +148,38 @@ const Profile: React.FC = () => {
                 </MDBCol>
             </MDBRow>
 
-            {/* Two cards row */}
+            {/* ==================== TWO CARDS ROW ==================== */}
             <MDBRow className="g-3 mb-4">
                 {/* Card 1 */}
-                <MDBCol sm="12" md="6">
-                    <MDBCard>
-                        <MDBCardHeader
-                            className="py-3 px-4 border-bottom"
-                            style={{ backgroundColor: "rgb(38, 53, 80)", color: "white" }}
+                <MDBCol xs="12" md="6">
+                    <MDBCard className="shadow-sm rounded-4 border-0">
+                        <div
+                            className={ui.headerPadClass}
+                            style={{
+                                backgroundColor: "rgb(38, 53, 80)",
+                                color: "white",
+                                borderTopRightRadius: "0.75rem",
+                                borderTopLeftRadius: "0.75rem",
+                            }}
                         >
-                            <div className="d-flex justify-content-between align-items-center">
-                                <MDBCardTitle tag="h5" className="mb-0 d-flex align-items-center">
-                                    <MDBIcon fas icon="chart-column" className="me-2" />
+                            <div className="d-flex align-items-center">
+                                <MDBIcon fas icon="chart-column" className="me-2 fs-5 text-white" />
+                                <span className="fw-bold" style={ui.hSection}>
                                     Problemi livello 1
-                                </MDBCardTitle>
+                                </span>
                             </div>
-                        </MDBCardHeader>
+                            <small className="text-white-50" style={ui.subSection}>
+                                Monitora i tuoi progressi
+                            </small>
+                        </div>
 
-                        {/* ✅ No MDBCol directly inside CardBody: use normal divs or Row/Col */}
-                        <MDBCardBody className="bg-white">
-                            <p className="text-muted fs-6 mb-3">
-                                Monitora i tuoi progressi, la formazione e l’evoluzione dei tuoi
-                                investimenti
+                        <MDBCardBody className={ui.bodyPadClass}>
+                            <p className="text-muted mb-3" style={ui.textBody}>
+                                Monitora i tuoi progressi, la formazione e l’evoluzione dei tuoi investimenti
                             </p>
 
-                            <MDBTooltip
-                                tag="div"
-                                title="Avanzamento rispetto al target sul valore attuale (cassa + asset)"
-                            >
-                                {/* ✅ Remove text-md-end conflict; keep flex for left/right */}
-                                <div className="mb-1 small d-flex justify-content-between">
+                            <MDBTooltip tag="div" title="Avanzamento rispetto al target sul valore attuale (cassa + asset)">
+                                <div className="mb-1 d-flex justify-content-between" style={ui.textSmall}>
                                     <span>Progresso</span>
                                     <span className="text-muted">20%</span>
                                 </div>
@@ -146,31 +193,35 @@ const Profile: React.FC = () => {
                 </MDBCol>
 
                 {/* Card 2 */}
-                <MDBCol sm="12" md="6">
-                    <MDBCard>
-                        <MDBCardHeader
-                            className="py-3 px-4 border-bottom"
-                            style={{ backgroundColor: "rgb(38, 53, 80)", color: "white" }}
+                <MDBCol xs="12" md="6">
+                    <MDBCard className="shadow-sm rounded-4 border-0">
+                        <div
+                            className={ui.headerPadClass}
+                            style={{
+                                backgroundColor: "rgb(38, 53, 80)",
+                                color: "white",
+                                borderTopRightRadius: "0.75rem",
+                                borderTopLeftRadius: "0.75rem",
+                            }}
                         >
-                            <div className="d-flex justify-content-between align-items-center">
-                                <MDBCardTitle tag="h5" className="mb-0 d-flex align-items-center">
-                                    <MDBIcon fas icon="chart-column" className="me-2" />
-                                    Problemi livello 1
-                                </MDBCardTitle>
+                            <div className="d-flex align-items-center">
+                                <MDBIcon fas icon="chart-column" className="me-2 fs-5 text-white" />
+                                <span className="fw-bold" style={ui.hSection}>
+                                    Obiettivi livello 1
+                                </span>
                             </div>
-                        </MDBCardHeader>
+                            <small className="text-white-50" style={ui.subSection}>
+                                Verso il livello successivo
+                            </small>
+                        </div>
 
-                        <MDBCardBody className="bg-white">
-                            <p className="text-muted fs-6 mb-3">
-                                Stai risolvendo le problematiche del livello 1 che ti aiuteranno a
-                                progredire verso il livello successivo.
+                        <MDBCardBody className={ui.bodyPadClass}>
+                            <p className="text-muted mb-3" style={ui.textBody}>
+                                Stai risolvendo le problematiche del livello 1 che ti aiuteranno a progredire verso il livello successivo.
                             </p>
 
-                            <MDBTooltip
-                                tag="div"
-                                title="Avanzamento rispetto al target sul valore attuale (cassa + asset)"
-                            >
-                                <div className="mb-1 small d-flex justify-content-between">
+                            <MDBTooltip tag="div" title="Avanzamento rispetto al target sul valore attuale (cassa + asset)">
+                                <div className="mb-1 d-flex justify-content-between" style={ui.textSmall}>
                                     <span>Progresso</span>
                                     <span className="text-muted">20%</span>
                                 </div>
@@ -184,37 +235,42 @@ const Profile: React.FC = () => {
                 </MDBCol>
             </MDBRow>
 
-            {/* Big awareness index card */}
+            {/* ==================== AWARENESS INDEX CARD (header come Dashboard) ==================== */}
             <MDBRow className="g-3 mb-4">
-                <MDBCol sm="12">
-                    <MDBCard>
-                        <MDBCardHeader
-                            className="py-3 px-4 border-bottom"
-                            style={{ backgroundColor: "rgb(38, 53, 80)", color: "white" }}
+                <MDBCol xs="12">
+                    <MDBCard className="shadow-sm rounded-4 border-0">
+                        <div
+                            className={ui.headerPadClass}
+                            style={{
+                                backgroundColor: "rgb(38, 53, 80)",
+                                color: "white",
+                                borderTopRightRadius: "0.75rem",
+                                borderTopLeftRadius: "0.75rem",
+                            }}
                         >
-                            <MDBCardTitle tag="h5" className="mb-0 d-flex flex-column">
-                                <div className="mb-2 d-flex align-items-center">
-                                    <MDBIcon fas icon="chart-column" className="me-2" />
+                            <div className="d-flex align-items-center mb-1">
+                                <MDBIcon fas icon="chart-column" className="me-2 fs-5 text-white" />
+                                <span className="fw-bold" style={ui.hSection}>
                                     Indice di consapevolezza finanziaria
-                                </div>
-                                <div className="text-muted fs-6">
-                                    Simulazioni basate sul tuo capitale iniziale, sui tuoi versamenti
-                                    mensili e su rendimenti annui ipotetici.
-                                </div>
-                            </MDBCardTitle>
-                        </MDBCardHeader>
+                                </span>
+                            </div>
+                            <small className="text-white-50" style={ui.subSection}>
+                                Simulazioni basate su capitale e versamenti
+                            </small>
+                        </div>
 
-                        <MDBCardBody className="bg-white">
-                            {/* ✅ Use Row/Col properly */}
+                        <MDBCardBody className={ui.bodyPadClass}>
                             <MDBRow className="justify-content-center text-center mb-4">
-                                <MDBCol sm="12" md="6" lg="4">
-                                    <div className="fs-6">
-                                        <span>26</span>
+                                <MDBCol xs="12" md="6" lg="4">
+                                    <div style={ui.textBody}>
+                                        <span className="fw-bold">26</span>
                                         <span>/</span>
                                         <span>100</span>
                                     </div>
 
-                                    <div className="mb-3">In formazione</div>
+                                    <div className="text-muted mb-3" style={ui.textBody}>
+                                        In formazione
+                                    </div>
 
                                     <MDBProgress className="rounded" height="6">
                                         <MDBProgressBar width={26} striped />
@@ -223,14 +279,18 @@ const Profile: React.FC = () => {
                             </MDBRow>
 
                             <MDBRow className="g-3 mb-3">
-                                <MDBCol sm="12" md="6">
-                                    <MDBCard className="border">
-                                        <MDBCardBody className="bg-white">
+                                <MDBCol xs="12" md="6">
+                                    <MDBCard className="border rounded-4">
+                                        <MDBCardBody className={isMobile ? "p-3" : "p-3"}>
                                             <div className="d-flex justify-content-between mb-2">
-                                                <span className="fw-bold">Formazione</span>
-                                                <span className="text-danger">10/100</span>
+                                                <span className="fw-bold" style={ui.textBody}>
+                                                    Formazione
+                                                </span>
+                                                <span className="text-danger fw-bold" style={ui.textBody}>
+                                                    10/100
+                                                </span>
                                             </div>
-                                            <p className="text-muted fs-6 mb-3">
+                                            <p className="text-muted mb-3" style={ui.textBody}>
                                                 Completa i corsi e la narrativa utile per il tuo livello.
                                             </p>
                                             <MDBProgress className="rounded" height="6">
@@ -240,14 +300,18 @@ const Profile: React.FC = () => {
                                     </MDBCard>
                                 </MDBCol>
 
-                                <MDBCol sm="12" md="6">
-                                    <MDBCard className="border">
-                                        <MDBCardBody className="bg-white">
+                                <MDBCol xs="12" md="6">
+                                    <MDBCard className="border rounded-4">
+                                        <MDBCardBody className={isMobile ? "p-3" : "p-3"}>
                                             <div className="d-flex justify-content-between mb-2">
-                                                <span className="fw-bold">Struttura</span>
-                                                <span className="text-danger">10/100</span>
+                                                <span className="fw-bold" style={ui.textBody}>
+                                                    Struttura
+                                                </span>
+                                                <span className="text-danger fw-bold" style={ui.textBody}>
+                                                    10/100
+                                                </span>
                                             </div>
-                                            <p className="text-muted fs-6 mb-3">
+                                            <p className="text-muted mb-3" style={ui.textBody}>
                                                 Hai bisogno di strutturare meglio il tuo modo di investire.
                                             </p>
                                             <MDBProgress className="rounded" height="6">
@@ -257,79 +321,92 @@ const Profile: React.FC = () => {
                                     </MDBCard>
                                 </MDBCol>
                             </MDBRow>
-                            <MDBRow className="align-items-center mb-4">
-                                <MDBCol className="col-12">
-                                    <MDBCard
-                                        style={{
-                                            border: "solid 1px rgba(190, 219, 255, 1)",
-                                            backgroundColor: "rgba(21, 93, 252, 1)",
-                                        }}
-                                    >
-                                        <MDBCardBody className="d-flex me-3 align-items-center justify-content-between">
-                                            <div className="" style={{ color: "white" }}>
-                                                <MDBCardTitle className="small fw-bold mb-1">
-                                                    Vuoi aumentare il tuo indice?
-                                                </MDBCardTitle>
 
-                                                <div className="small mb-0">
-                                                    <span>
-                                                        Guarda il prossimo video consigliato per continuare il tuo percorso di crescita.
-                                                    </span>
-                                                </div>
+                            {/* CTA blue card (stile Dashboard) */}
+                            <MDBCard
+                                className="border-0 rounded-4"
+                                style={{
+                                    border: "1px solid rgba(190, 219, 255, 1)",
+                                    backgroundColor: "rgba(21, 93, 252, 1)",
+                                }}
+                            >
+                                <MDBCardBody className={isMobile ? "p-3" : "p-3 p-md-4"}>
+                                    <div className="d-flex align-items-center justify-content-between gap-3">
+                                        <div style={{ color: "white", minWidth: 0 }}>
+                                            <MDBCardTitle className="fw-bold mb-1" style={ui.textBody}>
+                                                Vuoi aumentare il tuo indice?
+                                            </MDBCardTitle>
+
+                                            <div style={ui.textBody}>
+                                                Guarda il prossimo video consigliato per continuare il tuo percorso di crescita.
                                             </div>
-                                            <button type="button" className="btn btn-light ripple-surface-dark" style={{ color: "rgba(21, 93, 252, 1)" }}>Guarda</button>
-                                        </MDBCardBody>
-                                    </MDBCard>
-                                </MDBCol>
-                            </MDBRow>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            className="btn btn-light ripple-surface-dark"
+                                            style={{
+                                                color: "rgba(21, 93, 252, 1)",
+                                                fontSize: isMobile ? 12 : 13,
+                                                padding: isMobile ? "8px 12px" : "10px 14px",
+                                                borderRadius: 12,
+                                                flex: "0 0 auto",
+                                            }}
+                                        >
+                                            Guarda
+                                        </button>
+                                    </div>
+                                </MDBCardBody>
+                            </MDBCard>
                         </MDBCardBody>
                     </MDBCard>
                 </MDBCol>
             </MDBRow>
 
+            {/* ==================== VIDEOS + ROADMAP ==================== */}
             <MDBRow className="g-3 mb-4">
-                {/* Card 1 */}
-                <MDBCol sm="12" md="6">
-                    <MDBCard>
-                        <MDBCardHeader
-                            className="py-3 px-4 border-bottom"
-                            style={{ backgroundColor: "rgb(38, 53, 80)", color: "white" }}
+                {/* Video consigliati */}
+                <MDBCol xs="12" md="6">
+                    <MDBCard className="shadow-sm rounded-4 border-0">
+                        <div
+                            className={ui.headerPadClass}
+                            style={{
+                                backgroundColor: "rgb(38, 53, 80)",
+                                color: "white",
+                                borderTopRightRadius: "0.75rem",
+                                borderTopLeftRadius: "0.75rem",
+                            }}
                         >
-                            <div className="d-flex justify-content-between align-items-center">
-                                <MDBCardTitle tag="h5" className="mb-0 d-flex align-items-center">
-                                    <MDBIcon fas icon="chart-column" className="me-2" />
+                            <div className="d-flex align-items-center">
+                                <MDBIcon fas icon="chart-column" className="me-2 fs-5 text-white" />
+                                <span className="fw-bold" style={ui.hSection}>
                                     Video consigliati
-                                </MDBCardTitle>
+                                </span>
                             </div>
-                        </MDBCardHeader>
+                            <small className="text-white-50" style={ui.subSection}>
+                                Contenuti suggeriti per il tuo livello
+                            </small>
+                        </div>
 
-                        {/* ✅ No MDBCol directly inside CardBody: use normal divs or Row/Col */}
-                        <MDBCardBody className="bg-white">
+                        <MDBCardBody className={ui.bodyPadClass}>
                             <MDBCard
-                                className="border mb-3"
+                                className="border"
                                 style={{
                                     borderColor: "#E9EEF5",
                                     borderRadius: "14px",
                                     boxShadow: "0 1px 0 rgba(16,24,40,.02)",
                                 }}
                             >
-                                <MDBCardBody
-                                    className="d-flex align-items-center justify-content-between"
-                                    style={{ padding: "16px 16px" }}
-                                >
-                                    {/* Left content */}
+                                <MDBCardBody className="d-flex align-items-center justify-content-between" style={{ padding: "16px 16px" }}>
                                     <div className="pe-3" style={{ minWidth: 0 }}>
-                                        <div
-                                            className="fw-semibold text-dark"
-                                            style={{ fontSize: "14px", lineHeight: 1.2 }}
-                                        >
-                                            Iniziare a risparmiare ai tuoi
+                                        <div className="fw-semibold text-dark" style={{ fontSize: isMobile ? 13 : 14, lineHeight: 1.2 }}>
+                                            Iniziare a risparmiare
                                         </div>
 
                                         <div
                                             className="text-muted mt-1"
                                             style={{
-                                                fontSize: "12px",
+                                                fontSize: isMobile ? 12 : 12,
                                                 lineHeight: 1.3,
                                                 display: "-webkit-box",
                                                 WebkitLineClamp: 2,
@@ -340,7 +417,6 @@ const Profile: React.FC = () => {
                                             Scopri come creare un budget efficace e iniziare a mettere da parte i tuoi risparmi.
                                         </div>
 
-                                        {/* Tag row */}
                                         <div className="d-flex align-items-center gap-2 mt-2">
                                             <span
                                                 aria-hidden="true"
@@ -352,14 +428,12 @@ const Profile: React.FC = () => {
                                                     display: "inline-block",
                                                 }}
                                             />
-                                            <span style={{ color: "#155DFC", fontSize: "12px" }}>ripasso</span>
+                                            <span style={{ color: "#155DFC", fontSize: isMobile ? 12 : 12 }}>ripasso</span>
                                         </div>
                                     </div>
 
-                                    {/* Right play button */}
                                     <MDBBtn
                                         type="button"
-
                                         className="d-inline-flex align-items-center justify-content-center p-0"
                                         style={{
                                             width: 44,
@@ -379,454 +453,164 @@ const Profile: React.FC = () => {
                     </MDBCard>
                 </MDBCol>
 
-                {/* Card 2 */}
-                <MDBCol sm="12" md="6">
-                    <MDBCard>
-                        <MDBCardHeader
-                            className="py-3 px-4 border-bottom"
-                            style={{ backgroundColor: "rgb(38, 53, 80)", color: "white" }}
+                {/* Road map */}
+                <MDBCol xs="12" md="6">
+                    <MDBCard className="shadow-sm rounded-4 border-0">
+                        <div
+                            className={ui.headerPadClass}
+                            style={{
+                                backgroundColor: "rgb(38, 53, 80)",
+                                color: "white",
+                                borderTopRightRadius: "0.75rem",
+                                borderTopLeftRadius: "0.75rem",
+                            }}
                         >
-                            <div className="d-flex justify-content-between align-items-center">
-                                <MDBCardTitle tag="h5" className="mb-0 d-flex align-items-center">
-                                    <MDBIcon fas icon="chart-column" className="me-2" />
+                            <div className="d-flex align-items-center">
+                                <MDBIcon fas icon="chart-column" className="me-2 fs-5 text-white" />
+                                <span className="fw-bold" style={ui.hSection}>
                                     La tua road map
-                                </MDBCardTitle>
+                                </span>
                             </div>
-                        </MDBCardHeader>
+                            <small className="text-white-50" style={ui.subSection}>
+                                Passi consigliati per progredire
+                            </small>
+                        </div>
 
-                        <MDBCardBody className="bg-white">
-                            <MDBCard
-                                role="button"
-                                className="border border-success mb-3 alert-success"
-                                style={{
-
-                                    borderRadius: "14px",
-                                    boxShadow: "0 1px 0 rgba(16,24,40,.02)",
-
-                                }}
-                            >
-                                <MDBCardBody
-                                    className="d-flex align-items-start justify-content-between"
-                                    style={{ padding: "14px 16px" }}
+                        <MDBCardBody className={ui.bodyPadClass}>
+                            {/* ✅ dejo tu contenido igual, solo normalizo tamaños */}
+                            {[
+                                {
+                                    done: true,
+                                    level: "Livello 1",
+                                    title: "Definire almeno un obiettivo finanziario",
+                                    desc: "Completa il questionario e definisci il tuo obiettivo finanziario, capitale, età e i mercati.",
+                                },
+                                {
+                                    done: false,
+                                    level: "Livello 2",
+                                    title: "Traccia entrate e uscite di un mese",
+                                    desc: "Monitora per spese ed entrate del mese: tieni sotto controllo le tue finanze personali.",
+                                },
+                                {
+                                    done: false,
+                                    level: "Livello 3",
+                                    title: "Imposta un risparmio mensile (anche piccolo)",
+                                    desc: "Inizia a mettere da parte ogni mese una parte del tuo reddito, anche piccola. È una buona abitudine.",
+                                },
+                                {
+                                    done: false,
+                                    level: "Livello 4",
+                                    title: "Guarda almeno un video base sulla gestione del denaro",
+                                    desc: "Inizia la tua formazione guardando un video introduttivo.",
+                                },
+                            ].map((item) => (
+                                <MDBCard
+                                    key={item.level}
+                                    role="button"
+                                    className={`border mb-3 ${item.done ? "border-success alert-success" : ""}`}
+                                    style={{
+                                        borderRadius: "14px",
+                                        backgroundColor: item.done ? undefined : "#F6FAFF",
+                                        boxShadow: "0 1px 0 rgba(16,24,40,.02)",
+                                    }}
                                 >
-                                    {/* Left: radio + text */}
-                                    <div className="d-flex align-items-start" style={{ gap: 12, minWidth: 0 }}>
-                                        {/* Radio */}
-                                        <span
-                                            aria-hidden="true"
-                                            style={{
-                                                width: 22,
-                                                height: 22,
-                                                borderRadius: 999,
-                                                border: `2px solid`,
-                                                display: "inline-flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                marginTop: 2,
-                                                background: "#fff",
-                                                flex: "0 0 auto",
-                                            }}
-                                            className="border-success"
-                                        >
-                                            <MDBIcon className="fs-6" fas icon="check" />
-
-
-                                        </span>
-
-                                        {/* Text */}
-                                        <div style={{ minWidth: 0 }}>
-                                            <div
-                                                className="text-success"
-                                                style={{
-                                                    fontSize: 11,
-
-                                                    fontWeight: 700,
-                                                    letterSpacing: ".04em",
-                                                    lineHeight: 1.1,
-                                                }}
-                                            >
-                                                Livello 1
-                                            </div>
-
-                                            <div
-                                                className="text-dark mt-1"
-                                                style={{
-                                                    fontSize: 14,
-                                                    lineHeight: 1.25,
-                                                    whiteSpace: "nowrap",
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    maxWidth: "100%",
-                                                }}
-                                                title="Definire almeno un obiettivo finanziario"
-                                            >
-                                                Definire almeno un obiettivo finanziario
-                                            </div>
-
-                                            <div
-                                                className="text-muted mt-2"
-                                                style={{
-                                                    fontSize: 12,
-                                                    lineHeight: 1.3,
-                                                    display: "-webkit-box",
-                                                    WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: "vertical",
-                                                    overflow: "hidden",
-                                                }}
-                                            >
-                                                Completa il questionario e definisci il tuo obiettivo finanziario, capitale, età e i mercati.
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Right chevron */}
-                                    <MDBIcon
-                                        fas
-                                        icon="chevron-right"
-                                        style={{
-
-                                            marginTop: 6,
-                                            flex: "0 0 auto",
-                                        }}
-                                        className="text-success"
-                                    />
-                                </MDBCardBody>
-                            </MDBCard>
-                            <MDBCard
-                                role="button"
-                                className="border mb-3"
-                                style={{
-
-                                    borderRadius: "14px",
-                                    backgroundColor: "#F6FAFF",
-                                    boxShadow: "0 1px 0 rgba(16,24,40,.02)",
-
-                                }}
-                            >
-                                <MDBCardBody
-                                    className="d-flex align-items-start justify-content-between"
-                                    style={{ padding: "14px 16px" }}
-                                >
-                                    {/* Left: radio + text */}
-                                    <div className="d-flex align-items-start" style={{ gap: 12, minWidth: 0 }}>
-                                        {/* Radio */}
-                                        <span
-                                            aria-hidden="true"
-                                            style={{
-                                                width: 22,
-                                                height: 22,
-                                                borderRadius: 999,
-                                                border: `2px solid #155DFC`,
-                                                display: "inline-flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                marginTop: 2,
-                                                background: "#fff",
-                                                flex: "0 0 auto",
-                                            }}
-                                        >
-
+                                    <MDBCardBody className="d-flex align-items-start justify-content-between" style={{ padding: "14px 16px" }}>
+                                        <div className="d-flex align-items-start" style={{ gap: 12, minWidth: 0 }}>
                                             <span
+                                                aria-hidden="true"
                                                 style={{
-                                                    width: 5,
-                                                    height: 5,
+                                                    width: 22,
+                                                    height: 22,
                                                     borderRadius: 999,
-                                                    background: "#155DFC",
-                                                    display: "inline-block",
-                                                }}
-                                            />
-
-                                        </span>
-
-                                        {/* Text */}
-                                        <div style={{ minWidth: 0 }}>
-                                            <div
-                                                className=""
-                                                style={{
-                                                    fontSize: 11,
-                                                    color: "#155DFC",
-                                                    fontWeight: 700,
-                                                    letterSpacing: ".04em",
-                                                    lineHeight: 1.1,
+                                                    border: item.done ? "2px solid #198754" : "2px solid #155DFC",
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    marginTop: 2,
+                                                    background: "#fff",
+                                                    flex: "0 0 auto",
                                                 }}
                                             >
-                                                Livello 2
-                                            </div>
+                                                {item.done ? (
+                                                    <MDBIcon className="fs-6 text-success" fas icon="check" />
+                                                ) : (
+                                                    <span
+                                                        style={{
+                                                            width: 5,
+                                                            height: 5,
+                                                            borderRadius: 999,
+                                                            background: "#155DFC",
+                                                            display: "inline-block",
+                                                        }}
+                                                    />
+                                                )}
+                                            </span>
 
-                                            <div
-                                                className="text-dark mt-1"
-                                                style={{
-                                                    fontSize: 14,
-                                                    lineHeight: 1.25,
-                                                    whiteSpace: "nowrap",
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    maxWidth: "100%",
-                                                }}
-                                                title="Traccia entrate e uscite di un mese"
-                                            >
-                                                Traccia entrate e uscite di un mese
-                                            </div>
+                                            <div style={{ minWidth: 0 }}>
+                                                <div
+                                                    style={{
+                                                        fontSize: 11,
+                                                        color: item.done ? "#198754" : "#155DFC",
+                                                        fontWeight: 700,
+                                                        letterSpacing: ".04em",
+                                                        lineHeight: 1.1,
+                                                    }}
+                                                >
+                                                    {item.level}
+                                                </div>
 
-                                            <div
-                                                className="text-muted mt-2"
-                                                style={{
-                                                    fontSize: 12,
-                                                    lineHeight: 1.3,
-                                                    display: "-webkit-box",
-                                                    WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: "vertical",
-                                                    overflow: "hidden",
-                                                }}
-                                            >
-                                                Monitora per spese ed entrate del mese: tieni sotto controllo le tue finanze personali.
+                                                <div
+                                                    className="text-dark mt-1"
+                                                    style={{
+                                                        fontSize: isMobile ? 13 : 14,
+                                                        lineHeight: 1.25,
+                                                        whiteSpace: "nowrap",
+                                                        overflow: "hidden",
+                                                        textOverflow: "ellipsis",
+                                                        maxWidth: "100%",
+                                                    }}
+                                                    title={item.title}
+                                                >
+                                                    {item.title}
+                                                </div>
+
+                                                <div
+                                                    className="text-muted mt-2"
+                                                    style={{
+                                                        fontSize: isMobile ? 12 : 12,
+                                                        lineHeight: 1.3,
+                                                        display: "-webkit-box",
+                                                        WebkitLineClamp: 2,
+                                                        WebkitBoxOrient: "vertical",
+                                                        overflow: "hidden",
+                                                    }}
+                                                >
+                                                    {item.desc}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Right chevron */}
-                                    <MDBIcon
-                                        fas
-                                        icon="chevron-right"
-                                        style={{
-                                            color: "#155DFC",
-                                            marginTop: 6,
-                                            flex: "0 0 auto",
-                                        }}
-                                    />
-                                </MDBCardBody>
-                            </MDBCard>
-                            <MDBCard
-                                role="button"
-                                className="border mb-3"
-                                style={{
-
-                                    borderRadius: "14px",
-                                    backgroundColor: "#F6FAFF",
-                                    boxShadow: "0 1px 0 rgba(16,24,40,.02)",
-
-                                }}
-                            >
-                                <MDBCardBody
-                                    className="d-flex align-items-start justify-content-between"
-                                    style={{ padding: "14px 16px" }}
-                                >
-                                    {/* Left: radio + text */}
-                                    <div className="d-flex align-items-start" style={{ gap: 12, minWidth: 0 }}>
-                                        {/* Radio */}
-                                        <span
-                                            aria-hidden="true"
+                                        <MDBIcon
+                                            fas
+                                            icon="chevron-right"
                                             style={{
-                                                width: 22,
-                                                height: 22,
-                                                borderRadius: 999,
-                                                border: `2px solid #155DFC`,
-                                                display: "inline-flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                marginTop: 2,
-                                                background: "#fff",
+                                                color: item.done ? "#198754" : "#155DFC",
+                                                marginTop: 6,
                                                 flex: "0 0 auto",
                                             }}
-                                        >
+                                        />
+                                    </MDBCardBody>
+                                </MDBCard>
+                            ))}
 
-                                            <span
-                                                style={{
-                                                    width: 5,
-                                                    height: 5,
-                                                    borderRadius: 999,
-                                                    background: "#155DFC",
-                                                    display: "inline-block",
-                                                }}
-                                            />
-
-                                        </span>
-
-                                        {/* Text */}
-                                        <div style={{ minWidth: 0 }}>
-                                            <div
-                                                className=""
-                                                style={{
-                                                    fontSize: 11,
-                                                    color: "#155DFC",
-                                                    fontWeight: 700,
-                                                    letterSpacing: ".04em",
-                                                    lineHeight: 1.1,
-                                                }}
-                                            >
-                                                Livello 3
-                                            </div>
-
-                                            <div
-                                                className="text-dark mt-1"
-                                                style={{
-                                                    fontSize: 14,
-                                                    lineHeight: 1.25,
-                                                    whiteSpace: "nowrap",
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    maxWidth: "100%",
-                                                }}
-                                                title="Imposta un risparmio mensile (anche piccolo)"
-                                            >
-                                                Imposta un risparmio mensile (anche piccolo)
-                                            </div>
-
-                                            <div
-                                                className="text-muted mt-2"
-                                                style={{
-                                                    fontSize: 12,
-                                                    lineHeight: 1.3,
-                                                    display: "-webkit-box",
-                                                    WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: "vertical",
-                                                    overflow: "hidden",
-                                                }}
-                                            >
-                                                Inizia a mettere da parte ogni mese una parte del tuo reddito, anche piccola. È una buona abitudine.
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Right chevron */}
-                                    <MDBIcon
-                                        fas
-                                        icon="chevron-right"
-                                        style={{
-                                            color: "#155DFC",
-                                            marginTop: 6,
-                                            flex: "0 0 auto",
-                                        }}
-                                    />
-                                </MDBCardBody>
-                            </MDBCard>
-                            <MDBCard
-                                role="button"
-                                className="border mb-3"
-                                style={{
-
-                                    borderRadius: "14px",
-                                    backgroundColor: "#F6FAFF",
-                                    boxShadow: "0 1px 0 rgba(16,24,40,.02)",
-
-                                }}
-                            >
-                                <MDBCardBody
-                                    className="d-flex align-items-start justify-content-between"
-                                    style={{ padding: "14px 16px" }}
-                                >
-                                    {/* Left: radio + text */}
+                            {/* Locked level */}
+                            <MDBCard className="border mb-0" style={{ borderRadius: "14px", boxShadow: "0 1px 0 rgba(16,24,40,.02)" }}>
+                                <MDBCardBody className="d-flex align-items-start justify-content-between" style={{ padding: "14px 16px" }}>
                                     <div className="d-flex align-items-start" style={{ gap: 12, minWidth: 0 }}>
-                                        {/* Radio */}
-                                        <span
-                                            aria-hidden="true"
-                                            style={{
-                                                width: 22,
-                                                height: 22,
-                                                borderRadius: 999,
-                                                border: `2px solid #155DFC`,
-                                                display: "inline-flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                marginTop: 2,
-                                                background: "#fff",
-                                                flex: "0 0 auto",
-                                            }}
-                                        >
-
-                                            <span
-                                                style={{
-                                                    width: 5,
-                                                    height: 5,
-                                                    borderRadius: 999,
-                                                    background: "#155DFC",
-                                                    display: "inline-block",
-                                                }}
-                                            />
-
-                                        </span>
-
-                                        {/* Text */}
-                                        <div style={{ minWidth: 0 }}>
-                                            <div
-                                                className=""
-                                                style={{
-                                                    fontSize: 11,
-                                                    color: "#155DFC",
-                                                    fontWeight: 700,
-                                                    letterSpacing: ".04em",
-                                                    lineHeight: 1.1,
-                                                }}
-                                            >
-                                                Livello 4
-                                            </div>
-
-                                            <div
-                                                className="text-dark mt-1"
-                                                style={{
-                                                    fontSize: 14,
-                                                    lineHeight: 1.25,
-                                                    whiteSpace: "nowrap",
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    maxWidth: "100%",
-                                                }}
-                                                title="Guarda almeno un video base sulla gestione del denaro"
-                                            >
-                                                Guarda almeno un video base sulla gestione del denaro
-                                            </div>
-
-                                            <div
-                                                className="text-muted mt-2"
-                                                style={{
-                                                    fontSize: 12,
-                                                    lineHeight: 1.3,
-                                                    display: "-webkit-box",
-                                                    WebkitLineClamp: 2,
-                                                    WebkitBoxOrient: "vertical",
-                                                    overflow: "hidden",
-                                                }}
-                                            >
-                                                Inizia la tua formazione guardando un video introduttivo.
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Right chevron */}
-                                    <MDBIcon
-                                        fas
-                                        icon="chevron-right"
-                                        style={{
-                                            color: "#155DFC",
-                                            marginTop: 6,
-                                            flex: "0 0 auto",
-                                        }}
-                                    />
-                                </MDBCardBody>
-                            </MDBCard>
-                            <MDBCard
-                                role="button"
-                                className="border mb-3"
-                                style={{
-
-                                    borderRadius: "14px",
-                                    backgroundColor: "",
-                                    boxShadow: "0 1px 0 rgba(16,24,40,.02)",
-
-                                }}
-                            >
-                                <MDBCardBody
-                                    className="d-flex align-items-start justify-content-between"
-                                    style={{ padding: "14px 16px" }}
-                                >
-                                    {/* Left: radio + text */}
-                                    <div className="d-flex align-items-start" style={{ gap: 12, minWidth: 0 }}>
-                                        {/* Radio */}
-                                        <span className="text-muted">
+                                        <span className="text-muted" style={{ marginTop: 2 }}>
                                             <MDBIcon fas icon="lock" />
                                         </span>
 
-                                        {/* Text */}
                                         <div style={{ minWidth: 0 }}>
                                             <div
                                                 className="text-muted"
@@ -843,7 +627,7 @@ const Profile: React.FC = () => {
                                             <div
                                                 className="text-muted mt-1"
                                                 style={{
-                                                    fontSize: 14,
+                                                    fontSize: isMobile ? 13 : 14,
                                                     lineHeight: 1.25,
                                                     whiteSpace: "nowrap",
                                                     overflow: "hidden",
@@ -858,7 +642,7 @@ const Profile: React.FC = () => {
                                             <div
                                                 className="text-muted mt-2"
                                                 style={{
-                                                    fontSize: 12,
+                                                    fontSize: isMobile ? 12 : 12,
                                                     lineHeight: 1.3,
                                                     display: "-webkit-box",
                                                     WebkitLineClamp: 2,
@@ -870,8 +654,6 @@ const Profile: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
-
-
                                 </MDBCardBody>
                             </MDBCard>
                         </MDBCardBody>

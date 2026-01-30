@@ -50,6 +50,7 @@ export type InputType =
     | "input"
     | "text_area"
     | "date"
+    | "datetime"
     | "checkbox"
     | "selectbox"
     | "file_input"

@@ -222,16 +222,29 @@ final class TwelveDataClient
     // =========================================================
 
     /**
-     * Restituisce lo storico (daily di default) fino a ~15-20 anni.
+     * Restituisce lo storico (daily di default).
+     * Supporta anche start_date / end_date (YYYY-MM-DD) per tagliare il range.
      */
-    public function getTimeSeries(string $symbol, string $interval = '1day', int $outputsize = 5000): array
-    {
-        return $this->request('time_series', [
+    public function getTimeSeries(
+        string $symbol,
+        string $interval = '1day',
+        int $outputsize = 5000,
+        ?string $start_date = null,
+        ?string $end_date = null
+    ): array {
+        $params = [
             'symbol'     => $symbol,
             'interval'   => $interval,
             'outputsize' => $outputsize,
-        ]);
+        ];
+
+        // TwelveData accetta start_date / end_date (YYYY-MM-DD)
+        if ($start_date) $params['start_date'] = $start_date;
+        if ($end_date)   $params['end_date']   = $end_date;
+
+        return $this->request('time_series', $params);
     }
+
 
     /** Prezzo realtime per singolo simbolo. */
     public function getRealtimePrice(string $symbol): array

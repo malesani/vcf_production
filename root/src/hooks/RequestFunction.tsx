@@ -22,6 +22,7 @@ export type requestType = (
 ) => Promise<requestResponse>;
 
 export interface TableDataResponse<T> extends requestResponse {
+    response: requestResponse;
     data?: {
         rows: T[];
         meta: TableMeta

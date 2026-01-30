@@ -131,7 +131,7 @@ const PortfoliosDashboard: React.FC = () => {
     ).toFixed(2);
 
     return (
-        <MDBContainer className="py-2">
+        <MDBContainer fluid className="py-2">
             {/* ======= HEADER TOP (responsive) ======= */}
             <MDBRow className="align-items-stretch g-3">
                 <MDBCol xs="12" lg="8">
@@ -256,42 +256,56 @@ const PortfoliosDashboard: React.FC = () => {
                             >
                                 <MDBCardHeader
                                     className="d-flex justify-content-between align-items-center"
-                                    style={{ backgroundColor: "rgb(38, 53, 80)", color: "white" }}
+                                    style={{ backgroundColor: child.type === 'managed' ? "#14A44D" : "#3B71CA", color: "white" }}
                                 >
+
                                     <div className="fw-bold">
-                                        <i className="fas fa-wallet"></i>{" "}
                                         {child.type === 'managed'
                                             ? managedName[child.managed_uid]
                                             : "Personale"}
                                     </div>
-                                    <MDBIcon fas icon="bell" />
+
+
+                                    {child.type === 'managed' && (
+                                        <MDBIcon far icon="bell" />
+                                    )}
+
                                 </MDBCardHeader>
 
                                 <MDBCardBody>
+
+
                                     <div className="d-flex justify-content-between align-items-center mb-3">
                                         <MDBCardTitle className="mb-0">{child.title}</MDBCardTitle>
                                         <MDBIcon fas icon="fire" className="text-warning" />
                                     </div>
 
                                     <div className="d-flex justify-content-between align-items-center mb-2">
-                                        <MDBCardText className="text-muted small mb-0">Totale Investito</MDBCardText>
-                                        <h5 className="mb-0">{child.cash_position} €</h5>
+                                        <MDBCardText className="fw-bold text-muted small mb-0">Obbiettivo</MDBCardText>
+                                        <span className='fw-bold text-muted'>{child.target}€ in {child.time_horizon_years} Anni</span>
                                     </div>
-
-                                    <div className="d-flex justify-content-between align-items-center mb-2">
-                                        <MDBCardText className="text-muted small mb-0">Obbiettivo</MDBCardText>
-                                        <span>{child.target}€ in {child.time_horizon_years} Anni</span>
-                                    </div>
-
+                                    <hr />
                                     <div className="d-flex justify-content-between align-items-center mb-2">
                                         <MDBCardText className="text-muted small mb-0">Liquidita Attuale</MDBCardText>
                                         <span className="text-success fw-bold">{child.totals!.cash_position} €</span>
                                     </div>
 
                                     <div className="d-flex justify-content-between align-items-center mb-2">
-                                        <MDBCardText className="text-muted small mb-0">Valore Attuale</MDBCardText>
-                                        <h5 className="fw-bold mb-0">{child.totals!.total_with_cash ?? 0} €</h5>
+                                        <MDBCardText className="text-muted small mb-0">Controvalore Attuale</MDBCardText>
+                                        <span className="text-muted fw-bold">{child.totals!.total_with_cash ?? 0} €</span>
+
+
                                     </div>
+                                    {/*                                     
+                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                        <MDBCardText className="text-muted small mb-0">Totale Investito</MDBCardText>
+                                        <h5 className="mb-0">{child.cash_position} €</h5>
+                                    </div> */}
+
+
+
+
+
 
                                     <hr />
 
@@ -334,7 +348,7 @@ const PortfoliosDashboard: React.FC = () => {
 
             {/* ======= FOOTER (responsive) ======= */}
             <MDBRow className="align-items-center mt-2">
-                <MDBCol col="4"  sm="4" md="2">
+                <MDBCol col="4" sm="4" md="2">
                     <MDBDropdown>
                         <MDBDropdownToggle color="secondary" className="shadow-0 w-100 w-md-auto">
                             Per pagina
@@ -355,7 +369,7 @@ const PortfoliosDashboard: React.FC = () => {
                     </div>
                 </MDBCol>
 
-                <MDBCol col="4"  sm="4" md="2" className="d-flex justify-content-md-end justify-content-center">
+                <MDBCol col="4" sm="4" md="2" className="d-flex justify-content-md-end justify-content-center">
                     <Pagination
                         setCurrentPage={setCurrentPage}
                         currentPage={filters.page ?? 1}

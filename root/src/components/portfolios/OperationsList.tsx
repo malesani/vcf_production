@@ -42,6 +42,9 @@ import {
 // ────────────────────────────────────────────────────────────────────────────────
 type OperationsHistoryProps = {
   portfolio_uid: string;
+  onReloadPrices?: (() => Promise<void>) | null;
+  onReloadPortfolio?: (() => Promise<void>) | null;
+  onReloadOperations?: (() => Promise<void>) | null;
 };
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -69,7 +72,7 @@ const toDateTimeEnd = (d?: string) => (d ? `${d}T23:59:59` : undefined);
 // ────────────────────────────────────────────────────────────────────────────────
 // Component
 // ────────────────────────────────────────────────────────────────────────────────
-const OperationsHistory: React.FC<OperationsHistoryProps> = ({ portfolio_uid }) => {
+const OperationsHistory: React.FC<OperationsHistoryProps> = ({ portfolio_uid, onReloadPrices, onReloadPortfolio, onReloadOperations }) => {
   const { FormAlert, showAlertError, showAlertSuccess } = useFormAlert();
 
   // ── Filtri tabella ──────────────────────────────────────────────────────────
@@ -222,6 +225,9 @@ const OperationsHistory: React.FC<OperationsHistoryProps> = ({ portfolio_uid }) 
         showAlertSuccess(response.message || "Operazione aggiornata");
         setEditOpen(false);
         setFilters((p) => ({ ...p }));
+        if (onReloadPortfolio) onReloadPortfolio();
+        if (onReloadPrices) onReloadPrices();
+        if (onReloadOperations) onReloadOperations();
       } else {
         showAlertError(response.message || "Errore in aggiornamento");
       }

@@ -7,10 +7,11 @@ export interface APIUserInfo {
   last_name: string;
   phone: string | null;
   quiz: number;
+  extended_fields?: string | null;
 }
 
 // ✅ payload per UPDATE: NON include quiz
-export type UpdateUserInfoPayload = Omit<APIUserInfo, "quiz">;
+export type UpdateUserInfoPayload = Omit<APIUserInfo, "quiz" | "extended_fields">;
 
 type Base64String = string;
 export type APIUserInfoEnriched = APIUserInfo & {

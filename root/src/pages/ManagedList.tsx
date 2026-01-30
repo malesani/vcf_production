@@ -88,7 +88,7 @@ const ManagedList: React.FC = () => {
 
     return (
         <div>
-            <MDBContainer>
+            <MDBContainer fluid>
                 <MDBRow className=''>
                     <MDBCol>
                         <div className="py-2 mb-3">
@@ -102,7 +102,6 @@ const ManagedList: React.FC = () => {
                                 <span className="text-muted fs-5">
                                     Scopri come avrebbe performato storicamente un portafoglio di investimenti, <br />
                                     Dai un'occhiata ai nostri portafogli più eccezionali
-
                                 </span>
                             </div>
                         </div>

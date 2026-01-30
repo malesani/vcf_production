@@ -37,6 +37,7 @@ interface AuthContextType {
     last_name: string;
     phone: string;
     quiz: 0 | 1;
+    extended_fields?: string;
   };
 
   // helper permessi
@@ -168,6 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               last_name: ui.data.last_name,
               phone: ui.data.phone ?? "",
               quiz: ui.data.quiz === 1 ? 1 : 0,
+              extended_fields: ui.data.extended_fields ?? undefined,
             });
           } else {
             setUserInfo(undefined);

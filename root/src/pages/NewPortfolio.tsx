@@ -137,48 +137,49 @@ const NewPortfolio: React.FC = () => {
                         );
 
                         return <>
-                            <MDBCard className="shadow-sm p-3 p-md-4" style={{ borderRadius: "12px" }}>
-                                <MDBCardBody className="p-0">
-                                    {/* Titolo + badge (mobile stack, desktop row) */}
-                                    <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
-                                        <div className="w-100">
-                                            <MDBCardTitle className="fw-bold mb-1 fs-6 fs-md-5">
-                                                {selectedPortfolio ? selectedPortfolio.text : ""}
-                                            </MDBCardTitle>
-                                            <MDBCardText className="text-muted small mb-0">
-                                                {selectedPortfolio ? selectedPortfolio.description : ""}
-                                            </MDBCardText>
-                                        </div>
+                            {selectedPortfolio &&
+                                <MDBCard className="shadow-sm p-3 p-md-4" style={{ borderRadius: "12px" }}>
+                                    <MDBCardBody className="p-0">
+                                        {/* Titolo + badge (mobile stack, desktop row) */}
+                                        <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
+                                            <div className="w-100">
+                                                <MDBCardTitle className="fw-bold mb-1 fs-6 fs-md-5">
+                                                    {selectedPortfolio ? selectedPortfolio.text : ""}
+                                                </MDBCardTitle>
+                                                <MDBCardText className="text-muted small mb-0">
+                                                    {selectedPortfolio ? selectedPortfolio.description : ""}
+                                                </MDBCardText>
+                                            </div>
 
-                                        {/* <MDBBadge color="danger" pill className="align-self-start align-self-md-auto">
+                                            {/* <MDBBadge color="danger" pill className="align-self-start align-self-md-auto">
                                             Rischio Alto
                                         </MDBBadge> */}
-                                    </div>
-                                  
-                                    {/* Dati principali (mobile 2x2, desktop 4 cols) */}
-                                    <MDBRow className="text-center g-2 my-3">
-                                        {selectedPortfolio &&
+                                        </div>
+
+                                        {/* Dati principali (mobile 2x2, desktop 4 cols) */}
+                                        <MDBRow className="text-center g-2 my-3">
+
                                             <MDBCol xs="6" md="6">
                                                 <div className="p-2 rounded bg-light h-100">
                                                     <div className="fw-bold text-success fs-6 fs-md-5">{selectedPortfolio ? selectedPortfolio.adv_growthPercentFrom : ""}%</div>
                                                     <small className="text-muted d-block">Rendimento Annuale Atteso</small>
                                                 </div>
                                             </MDBCol>
-                                        }
-                                        {isMobile && <hr className="my-3" />}
 
-                                        {selectedPortfolio &&
+                                            {isMobile && <hr className="my-3" />}
+
+
                                             <MDBCol xs="6" md="6">
                                                 <div className="p-2 rounded bg-light h-100">
                                                     <div className="fw-bold fs-6 fs-md-5">{selectedPortfolio ? selectedPortfolio.adv_timeRangeFrom : ""} - {selectedPortfolio ? selectedPortfolio.adv_timeRangeTo : ""} anni</div>
                                                     <small className="text-muted d-block">Orizzonte Temporale Consigliato</small>
                                                 </div>
                                             </MDBCol>
-                                        }
-                                    </MDBRow>
 
-                                    {/* Team di gestione */}
-                                    {/* <hr className="my-3" />
+                                        </MDBRow>
+
+                                        {/* Team di gestione */}
+                                        {/* <hr className="my-3" />
                                     <div>
                                         <p className="fw-bold mb-1">Team di Gestione</p>
                                         <p className="text-muted small mb-0">
@@ -186,43 +187,14 @@ const NewPortfolio: React.FC = () => {
                                             tecnologici e growth stocks.
                                         </p>
                                     </div> */}
-                                </MDBCardBody>
-                            </MDBCard>
+                                    </MDBCardBody>
+                                </MDBCard>
+                            }
                         </>;
                     }
                 }
             ]
         },
-
-        {
-            name: "assets",
-            label: "Composizione Portafoglio",
-            type: "repeater",
-            required: true,
-            grid: { md: 12 },
-            subFields: PortfolioAsset_FormFields as any,
-            properties: {
-                defaultItem: () => ({ symbol: null, invested_amount: null }),
-            }, visible: (f) => { return f.type === "custom" },
-            extraElements: [
-                {
-                    position: "before", grid: { md: 12 },
-                    visible: (f) => { return f.type === "custom" },
-                    element: (fd) => {
-                        let cash = fd.assets?.reduce((sum, item) => {
-                            return sum + parseFloat(String(item.unitQuantity));
-                        }, 0) ?? 0;
-                        return <>
-                            <div className="form-outline">
-                                <div className="form-control bg-light border d-flex flex-row flex-nowrap justify-content-between" style={{ pointerEvents: "none" }}>
-                                    <span>Capitale Investito: </span><b>{isNaN(cash) ? 0 : cash} €</b>
-                                </div>
-                            </div>
-                        </>;
-                    }
-                }
-            ]
-        }
     ]
 
     return (

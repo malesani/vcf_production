@@ -5,6 +5,7 @@ import {
   MDBCheckbox,
   MDBFile,
   MDBDatepicker,
+  MDBDateTimepicker,
 } from "mdb-react-ui-kit";
 import { MDBFileUpload } from 'mdb-react-file-upload';
 
@@ -89,8 +90,14 @@ export function GeneralInput<T extends Record<string, any>>(
 
   // Funzione di change che invoca il callback esterno
   const triggerChange = (e: InputOrTextAreaChangeEvent | null, val: any, isValid: boolean, feedbackText?: string) => {
+    const current = (formData as any)[key] ?? "";
+    const next = val ?? "";
+
+    // ✅ evita loop: se il valore è identico non fare setState
+    if (String(current) === String(next)) return;
+
     setValidity(isValid);
-    e?.target.setCustomValidity(isValid ? "" : "INVALID");
+    e?.target?.setCustomValidity?.(isValid ? "" : "INVALID");
     onChange(field.name as keyof T, val, isValid, feedbackText);
   };
 
@@ -161,6 +168,34 @@ export function GeneralInput<T extends Record<string, any>>(
         />
       );
       break;
+
+    case "datetime":
+      control = (
+        <MDBDateTimepicker
+          {...common}
+          label={field_label}
+          labelClass={label_class}
+          value={(formData as any)[key] || ""}
+          onChange={(val: any) => {
+            const raw =
+              typeof val === "string"
+                ? val
+                : (val?.value ?? val?.target?.value ?? "");
+
+            const rawStr = String(raw ?? "").trim();
+
+            // evita loop (come già fai)
+            const current = (formData as any)[key] ?? "";
+            if (String(current) === String(rawStr)) return;
+
+            const computedValidation = computeValidation<T>(field, rawStr, formData);
+            triggerChange(null, rawStr, computedValidation.isValid, computedValidation.feedbackText);
+          }}
+        />
+      );
+      break;
+
+
 
     case "file_input":
       control = (

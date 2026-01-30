@@ -353,33 +353,40 @@ class signupManager extends signupManagerBase
                 throw new Exception("Password hashing failed");
             }
 
+            // default dashboard config
+            $extended_fields = json_encode(["level" => 1], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
             $stmt = $this->conn->prepare("
-            INSERT INTO acl_users (
-                user_uid,
-                email,
-                first_name,
-                last_name,
-                phone,
-                lang_code,
-                hash_pw
-            ) VALUES (
-                :user_uid,
-                :email,
-                :first_name,
-                :last_name,
-                :phone,
-                :lang_code,
-                :hash_pw
-            )
-        ");
+                INSERT INTO acl_users (
+                    user_uid,
+                    email,
+                    first_name,
+                    last_name,
+                    phone,
+                    lang_code,
+                    hash_pw,
+                    extended_fields
+                ) VALUES (
+                    :user_uid,
+                    :email,
+                    :first_name,
+                    :last_name,
+                    :phone,
+                    :lang_code,
+                    :hash_pw,
+                    :extended_fields
+                )
+            ");
+
             $stmt->execute([
-                'user_uid'   => $user_uid,
-                'email'      => $email,
-                'first_name' => $first_name,
-                'last_name'  => $last_name,
-                'phone'      => $phone ?: null,
-                'lang_code'  => $lang_code,
-                'hash_pw'    => $hash_pw
+                'user_uid'        => $user_uid,
+                'email'           => $email,
+                'first_name'      => $first_name,
+                'last_name'       => $last_name,
+                'phone'           => $phone ?: null,
+                'lang_code'       => $lang_code,
+                'hash_pw'         => $hash_pw,
+                'extended_fields' => $extended_fields,
             ]);
 
             // ===============================

@@ -56,14 +56,14 @@ export const NivoPie: React.FC<PieProps> = ({ data, pieData }) => {
                             </clipPath>
                         </defs>
                     </svg>
-                    <span className=" fw-semibold  ms-2">{data.title}</span>
+                    <span className=" fw-semibold  ms-2">{data.title.slice(0,20)}</span>
                 </MDBCardHeader>
 
                 {/* Body */}
                 <MDBCardBody>
                     <MDBCardTitle className="fs-6 fw-bold text-dark">{data.title}</MDBCardTitle>
                     <MDBCardText className="text-muted mb-3" style={{ minHeight: "40px", overflow: "hidden" }}>
-                        {data.description}
+                        {data.description.slice(0,30)}
                     </MDBCardText>
 
                     {/* Badges */}

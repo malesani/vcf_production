@@ -50,3 +50,20 @@
     transform: scale(2);
   }
 }
+
+/* modale notifiche */
+.notif-modal-body {
+  overflow-y: auto;
+}
+
+@media (min-width: 992px) {
+  .notif-modal-body {
+    max-height: 70vh;
+  }
+}
+
+@media (max-width: 991px) {
+  .notif-modal-body {
+    max-height: 60vh;
+  }
+}

@@ -24,7 +24,7 @@ const SetupNfo: React.FC = () => {
     const [managedPortfolios, setManagedPortfolios] = useState<PortManagedInfo[] | null>(null);
     const [managedPortfoliosOptions, setManagedPortfoliosOptions] = useState<SelectData[] | null>(null);
 
-    
+
     // FETCH DATA
     useEffect(() => {
         setLoadingMode(true);
@@ -57,7 +57,7 @@ const SetupNfo: React.FC = () => {
             })
 
 
-        
+
     }, []);
     // END
 
@@ -66,7 +66,7 @@ const SetupNfo: React.FC = () => {
             console.log("stocksInfoOptions", stocksInfoOptions);
             console.log("managedPortfoliosOptions", managedPortfoliosOptions);
             console.log("managedPortfolios", managedPortfolios);
-            
+
             setLoadingMode(false);
         }
     }, [stocksInfoOptions, managedPortfolios]);
@@ -88,6 +88,19 @@ const SetupNfo: React.FC = () => {
             name: "managed_uid", label: "Modello di Portafoglio", required: true, grid: { md: 5 }, type: "selectbox",
             properties: { preventFirstSelection: true }, options: managedPortfoliosOptions as SelectData[]
         },
+
+        // ✅ NEW
+        {
+            name: "scheduled_at",
+            label: "Programma invio (opzionale)",
+            required: false,
+            grid: { md: 6 },
+            type: "datetime", // se il tuo GeneralForm lo supporta
+            properties: {
+                placeholder: "Se vuoto: invio immediato",
+            },
+        },
+
         { name: "description", label: "Breve descrizione", required: true, grid: { md: 12 }, type: "text_area" },
         { name: "html_body", label: "Pagina in HTML di info", required: true, grid: { md: 12 }, type: "richtext" },
         {
@@ -102,6 +115,7 @@ const SetupNfo: React.FC = () => {
             }, hrBefore: true
         }
     ];
+
 
     const NfoAlert_ColumnConfig = useMemo<ColumnConfig<NfoInfo>[]>(() => [
         { field: "title", label: "title" },
@@ -141,6 +155,17 @@ const SetupNfo: React.FC = () => {
             name: "managed_uid", label: "Modello di Portafoglio", required: true, grid: { md: 5 }, type: "selectbox",
             properties: { preventFirstSelection: true }, options: managedPortfoliosOptions as SelectData[]
         },
+
+        // ✅ NEW
+        {
+            name: "scheduled_at",
+            label: "Programma pubblicazione (opzionale)",
+            required: false,
+            grid: { md: 6 },
+            type: "datetime", // se supportato
+            properties: { placeholder: "Se vuoto: pubblicazione immediata" },
+        },
+
         { name: "description", label: "Breve descrizione", required: true, grid: { md: 12 }, type: "text_area" },
         { name: "html_body", label: "Pagina in HTML di info", required: false, grid: { md: 12 }, type: "richtext" },
         { name: "year", label: "Anno di riferimento", required: true, grid: { md: 6 }, type: "number", properties: { minValue: 2025, maxValue: fullYear + 50, defaultValue: fullYear } },
@@ -152,11 +177,11 @@ const SetupNfo: React.FC = () => {
             required: true,
             grid: { md: 12 },
             subFields: NfoAssetReport_FormFields as any,
-            properties: {
-                defaultItem: () => ({ symbol: null, percentage: null }),
-            }, hrBefore: true
+            properties: { defaultItem: () => ({ symbol: null, percentage: null }) },
+            hrBefore: true
         }
     ];
+
 
     const NfoReport_ColumnConfig = useMemo<ColumnConfig<NfoInfo>[]>(() => [
         { field: "year", label: "year" },
@@ -179,10 +204,10 @@ const SetupNfo: React.FC = () => {
             startOpen: false,
             contentElement: (
                 <MDBCard className="mt-2 p-4">
-                    <GeneralTable<NfoInfo, {type: string}, TableFilters<NfoInfo> & NfoListFilters>
+                    <GeneralTable<NfoInfo, { type: string }, TableFilters<NfoInfo> & NfoListFilters>
                         title="Gestione Reports"
                         icon="cogs"
-                        params={{type: "report"}}
+                        params={{ type: "report" }}
                         columns={NfoReport_ColumnConfig}
                         fields={NfoReport_FormFields}
                         getData={get_nfoReportsListPaginated}
@@ -201,10 +226,10 @@ const SetupNfo: React.FC = () => {
             startOpen: true,
             contentElement: (
                 <MDBCard className="mt-2 p-4">
-                    <GeneralTable<NfoInfo, {type: string}, TableFilters<NfoInfo> & NfoListFilters>
+                    <GeneralTable<NfoInfo, { type: string }, TableFilters<NfoInfo> & NfoListFilters>
                         title="Gestione Alerts"
                         icon="cogs"
-                        params={{type: "report"}}
+                        params={{ type: "alert" }}
                         columns={NfoAlert_ColumnConfig}
                         fields={NfoAlert_FormFields}
                         getData={get_nfoAlertsListPaginated}

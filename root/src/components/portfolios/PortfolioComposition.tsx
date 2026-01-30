@@ -22,15 +22,28 @@ interface Props {
     pesature: SymbolWeighing[] | undefined;
     realOps: OperationItem[];
     assetPrices?: Record<string, number | null>;
+    profit: any[];
     onReloadPrices?: (() => Promise<void>) | null;
     onReloadPortfolio?: (() => Promise<void>) | null;
     onReloadOperations?: (() => Promise<void>) | null;
+    onReloadProfit?: (() => Promise<void>) | null;
 }
 
 
 const toNumber = (val: any): number => {
-    const num = typeof val === 'number' ? val : parseFloat(val);
-    return isNaN(num) ? 0 : num;
+    if (val == null) return 0;
+    if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+
+    const s = String(val)
+        .trim()
+        .replace(/\s/g, '')
+        .replace('€', '')
+        .replace(/\.(?=\d{3}(\D|$))/g, '') // quita separador miles tipo 1.234,56
+        .replace(',', '.')
+        .replace(/[^0-9.-]/g, '');
+
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
 };
 
 const fmtEUR = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 }).format(toNumber(n));
@@ -44,7 +57,8 @@ type ChartDatum = {
     color: string;
 };
 
-const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices, onReloadPrices, onReloadPortfolio, onReloadOperations, pesature = [] }) => {
+const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices, profit, onReloadProfit, onReloadPrices, onReloadPortfolio, onReloadOperations, pesature = [] }) => {
+
     const { cash_position, assets = [] } = portfolio;
     const randomColor = () => `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`;
     const isMobile = useIsMobile(992);
@@ -72,14 +86,17 @@ const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices
 
         const liquidita: ChartDatum = {
             id: "Liquidita",
-            label: "green",
+            label: "Liquidita",
             value: Math.abs(cash_position),
             color: "red",
         };
-        console.log(formattedAssets, liquidita)
-        setData([...formattedAssets, liquidita]);
-    }, [assets, cash_position]);
 
+        setData([...formattedAssets, liquidita]);
+    }, [assets, cash_position, profit]);
+
+    useEffect(() => {
+        setPricesMap(assetPrices || {});
+    }, [assetPrices]);
 
     //useMemo
     const { totalAssetsNow } = useMemo(() => {
@@ -103,13 +120,19 @@ const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices
         var assets_li = assets.map((a) => {
             const qty = toNumber(a.unitQuantity);
             if (qty <= 0) { return null; }
-            const purchase = toNumber(a.unitaryPrice_now);
+
+            const purchase = toNumber(profit.find(p => p.symbol === a.symbol)?.unitaryPrice_avg);
             const current = pricesMap[a.symbol] != null ? toNumber(pricesMap[a.symbol]) : purchase;
 
-            const amountNow = qty * current;
+            console.log(current, "current")
+            console.log(purchase, "purchase")
+            
+            console.log(purchase > 0 ? (current / purchase - 1) * 100 : 0, "purchase")
 
             const diffPct = purchase > 0 ? (current / purchase - 1) * 100 : 0; // FIX: segno corretto
             const diffVal = qty * (current - purchase); // FIX: P/L in €
+
+            console.log(diffPct, diffVal, "diffPct diffVal")
 
             const trendColor = diffPct > 0 ? 'success' : diffPct < 0 ? 'danger' : 'muted';
             const trendIcon = diffPct > 0 ? 'arrow-up' : diffPct < 0 ? 'arrow-down' : 'minus';
@@ -354,6 +377,7 @@ const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices
                     if (onReloadPortfolio) onReloadPortfolio();
                     if (onReloadPrices) onReloadPrices();
                     if (onReloadOperations) onReloadOperations();
+                    if (onReloadProfit) onReloadProfit();
                 }}
 
             />
@@ -368,6 +392,7 @@ const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices
                     if (onReloadPortfolio) onReloadPortfolio();
                     if (onReloadPrices) onReloadPrices();
                     if (onReloadOperations) onReloadOperations();
+                    if (onReloadProfit) onReloadProfit();
                 }}
             />
 

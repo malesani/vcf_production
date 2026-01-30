@@ -234,21 +234,21 @@ class portfolioObj extends portfolioObjBase
             $this->portfolio_operations = $this->load_operations();
         }
 
-        // Prendo tutti i simboli dalle operazioni
         $symbols = array_column($this->portfolio_operations, 'symbol');
-
-        // Rimuovo duplicati
         $symbols = array_unique($symbols);
-
-        // Escludo simbolo CASH_EUR
         $symbols = array_filter($symbols, fn($sym) => $sym !== 'CASH_EUR');
 
-        // Calcolo earning per ogni symbol
         $assetsEarnings = [];
         foreach ($symbols as $symbol) {
+
+            $earn = $this->compute_assetEarn($symbol); // REALIZZATO (già corretto)
+            $avgPos = $this->compute_assetAvgPosition($symbol); // POSIZIONE APERTA
+
             $assetsEarnings[] = [
                 "symbol" => $symbol,
-                "earning_cash" => $this->compute_assetEarn($symbol)
+                "earning_cash" => $earn,
+                "qty_now" => $avgPos['qty_now'],
+                "unitaryPrice_avg" => $avgPos['unitaryPrice_avg'],
             ];
         }
 
@@ -506,6 +506,78 @@ class portfolioObj extends portfolioObjBase
                 'error' => $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Calcola quantità residua e prezzo medio di carico (average cost)
+     * per le posizioni ANCORA aperte su un simbolo.
+     *
+     * Ritorna:
+     * - qty_now (float)
+     * - unitaryPrice_avg (float|null)
+     * - cost_basis_now (float)
+     */
+    private function compute_assetAvgPosition(string $symbol): array
+    {
+        if (empty($this->portfolio_operations)) {
+            $this->portfolio_operations = $this->load_operations();
+        }
+
+        $ops = array_values(array_filter($this->portfolio_operations, function ($op) use ($symbol) {
+            return isset($op['symbol']) && $op['symbol'] === $symbol;
+        }));
+
+        if (empty($ops)) {
+            return [
+                'qty_now' => 0.0,
+                'unitaryPrice_avg' => null,
+                'cost_basis_now' => 0.0,
+            ];
+        }
+
+        usort($ops, function ($a, $b) {
+            return strtotime($a['created_at'] ?? '') <=> strtotime($b['created_at'] ?? '');
+        });
+
+        $qty  = 0.0; // quantità in carico
+        $cost = 0.0; // costo totale in carico
+
+        foreach ($ops as $op) {
+            $type = $op['operation'] ?? '';
+            $q = isset($op['unitQuantity']) ? (float)$op['unitQuantity'] : 0.0;
+            $p = isset($op['unitaryPrice']) ? (float)$op['unitaryPrice'] : 0.0;
+
+            if ($q <= 0) continue;
+
+            if ($type === 'buy') {
+                $qty  += $q;
+                $cost += $q * $p;
+            } elseif ($type === 'sell') {
+                if ($qty <= 0) continue;
+
+                $avg = $cost / $qty;
+                $sellQty = min($q, $qty);
+
+                $qty  -= $sellQty;
+                $cost -= $sellQty * $avg;
+
+                // anti-floating
+                if ($qty < 1e-9) {
+                    $qty = 0.0;
+                    $cost = 0.0;
+                }
+                if ($cost < 1e-6) {
+                    $cost = 0.0;
+                }
+            }
+        }
+
+        $avgNow = ($qty > 0) ? ($cost / $qty) : null;
+
+        return [
+            'qty_now' => round($qty, 6),
+            'unitaryPrice_avg' => $avgNow !== null ? round($avgNow, 6) : null,
+        ];
     }
 }
 

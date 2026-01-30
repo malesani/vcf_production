@@ -29,7 +29,7 @@ class userObj {
     private function load_userInfo() {
         $user_uid = $this->user_data['user_uid'];
         $stmt = $this->conn->prepare("
-            SELECT user_uid, email, first_name, last_name, phone, quiz 
+            SELECT user_uid, email, first_name, last_name, phone, quiz, extended_fields
             FROM acl_users 
             WHERE user_uid = :user_uid
         ");

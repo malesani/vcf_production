@@ -11,9 +11,9 @@ export interface PortfolioTotals {
   total_with_cash: number;
 }
 
-export type ManagedType = { type: 'managed'; managed_uid: string ; managed_title: string };
+export type ManagedType = { type: 'managed'; managed_uid: string; managed_title?: string };
 
-export type CustomType = { type: 'custom'; managed_uid?: string };
+export type CustomType = { type: 'custom'; managed_uid?: string; managed_title?: string };
 
 export type PortfolioInfo = {
   portfolio_uid: string;        // UID

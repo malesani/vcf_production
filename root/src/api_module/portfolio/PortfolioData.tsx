@@ -84,6 +84,7 @@ function serializeCreatePayload(
     cash_position: p.cash_position,
     automatic_savings: p.automatic_savings,
     isDraft: p.isDraft,
+    managed_title: p.managed_title
   };
   if (p.type === 'managed') {
     payload.managed_uid = (p as ManagedType).managed_uid;

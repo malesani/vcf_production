@@ -78,7 +78,7 @@ const AssetAllecation: React.FC<Props> = ({ portfolio, assetPrices, operations, 
     ];
 
     return (
-        <MDBCol md="12" className="" style={{ overflow: "auto" }}>
+        <MDBCol md="12" className="">
             {pesature === undefined && (
                 <General_Loading theme="formLoading" text="Caricamento Portafogli" />
             )}

@@ -23,6 +23,8 @@ import {
   MDBListGroup,
   MDBListGroupItem,
   MDBAlert,
+  MDBCol,
+  MDBRow,
 } from "mdb-react-ui-kit";
 
 
@@ -455,14 +457,34 @@ const TopBar: React.FC<TopBarProps> = ({
 
       {/* ✅ MODALE: Centro notifiche */}
       <MDBModal open={notifCenterOpen} setOpen={setNotifCenterOpen} tabIndex="-1">
-        <MDBModalDialog size="lg">
-          <MDBModalContent>
-            <MDBModalHeader>
-              <MDBModalTitle>Centro notifiche</MDBModalTitle>
-              <MDBBtn className="btn-close" color="none" onClick={toggleNotifCenter} />
+        <MDBModalDialog
+          size={isMobile ? undefined : "lg"}
+          className={isMobile ? "modal-fullscreen-sm-down" : ""}
+        >
+          <MDBModalContent
+            style={{
+              borderRadius: isMobile ? 0 : 16,
+              overflow: "hidden",
+            }}
+          >
+            <MDBModalHeader className="bg-white border-bottom">
+              <MDBRow className="w-100 align-items-center g-2">
+                <MDBCol xs="10">
+                  <MDBModalTitle className="d-flex align-items-center gap-2 mb-0">
+                    <MDBIcon far icon="bell" className="me-1" />
+                    Centro notifiche
+                  </MDBModalTitle>
+                </MDBCol>
+                <MDBCol xs="2" className="text-end">
+                  <MDBBtn className="btn-close" color="none" onClick={toggleNotifCenter} />
+                </MDBCol>
+              </MDBRow>
             </MDBModalHeader>
 
-            <MDBModalBody className="notif-modal-body">
+            <MDBModalBody
+              className="bg-white"
+              style={{ padding: isMobile ? "12px 12px 10px" : "18px 18px 10px" }}
+            >
               {loadingNfo && (
                 <div className="d-flex align-items-center gap-2">
                   <MDBSpinner size="sm" />
@@ -484,171 +506,310 @@ const TopBar: React.FC<TopBarProps> = ({
 
               {!loadingNfo && !nfoError && hasVisibleNotifications && (
                 <>
-                  {groups.map((g) => (
-                    <div key={g.managed_uid} className="mb-4">
-                      {/* Header gruppo */}
-                      <div className="d-flex align-items-center justify-content-between mb-2">
-                        <MDBTypography tag="h6" className="mb-0">
-                          {g.label}
-                        </MDBTypography>
+                  {groups.map((g) => {
+                    const allItems = [...(g.alerts ?? []), ...(g.reports ?? [])];
+                    const allViewed = allItems.length
+                      ? allItems.every((x) => viewedNfo.has(x.nfo_uid))
+                      : true;
 
-                        <div className="d-flex align-items-center gap-2">
-                          <MDBBtn
-                            size="sm"
-                            color="light"
-                            disabled={
-                              markingGroup.has(g.managed_uid) ||
-                              // disabilita se sono tutte già viste
-                              [...g.alerts, ...g.reports].every((x) => viewedNfo.has(x.nfo_uid))
-                            }
-                            onClick={() => markAllInGroupViewed(g.managed_uid)}
-                          >
-                            {markingGroup.has(g.managed_uid) ? (
-                              <>
-                                <MDBSpinner size="sm" className="me-2" />
-                                Segno...
-                              </>
-                            ) : (
-                              "Segna tutte come lette"
-                            )}
-                          </MDBBtn>
-
-                          <MDBBadge color="dark" pill>
-                            {(g.alerts.length ?? 0) + (g.reports.length ?? 0)}
-                          </MDBBadge>
-                        </div>
-                      </div>
-
-                      {/* ALERTS del gruppo */}
-                      {g.alerts.length > 0 && (
-                        <>
-                          <div className="d-flex align-items-center justify-content-between mb-2">
-                            <MDBTypography tag="div" className="mb-0 fw-semibold">
-                              Alerts
+                    return (
+                      <div key={g.managed_uid} className="mb-4">
+                        {/* ✅ Header gruppo con COLS */}
+                        <MDBRow className="align-items-center g-2 mb-2">
+                          <MDBCol xs="12" md="8" className="d-flex align-items-center gap-2 flex-wrap">
+                            <MDBTypography tag="h5" className="mb-0 fw-bold text-dark">
+                              {g.label}
                             </MDBTypography>
-                            <MDBBadge color="danger" pill>
-                              {g.alerts.length}
+
+                            <MDBBadge pill color="primary" className="fw-semibold">
+                              {Math.max(
+                                0,
+                                allItems.filter((x) => !viewedNfo.has(x.nfo_uid)).length
+                              )}{" "}
+                              nuove
                             </MDBBadge>
-                          </div>
+                          </MDBCol>
 
-                          <MDBListGroup className="mb-3">
-                            {g.alerts.map((a) => (
-                              <MDBListGroupItem
-                                key={a.nfo_uid}
-                                className={`py-3 ${removingNfo.has(a.nfo_uid) ? "nfo-exit" : ""}`}
-                              >
-                                <div className="d-flex align-items-start justify-content-between gap-3">
-                                  <div>
-                                    <div className="fw-bold">
-                                      {a.title}
-                                      {a.month_num && a.year ? (
-                                        <span className="text-muted fw-normal ms-2 small">
-                                          ({formatMonthYearIT(a.month_num, a.year)})
-                                        </span>
-                                      ) : null}
-                                    </div>
+                          <MDBCol xs="12" md="12" className={isMobile ? "" : "text-end"}>
+                            <MDBBtn
+                              size="sm"
+                              color="link"
+                              className={[
+                                "text-decoration-none fw-semibold p-0 d-inline-flex align-items-center",
+                                isMobile ? "w-100 justify-content-center py-2 border rounded-3" : "",
+                              ].join(" ")}
+                              disabled={markingGroup.has(g.managed_uid) || allViewed}
+                              onClick={() => markAllInGroupViewed(g.managed_uid)}
+                            >
+                              {markingGroup.has(g.managed_uid) ? (
+                                <>
+                                  <MDBSpinner size="sm" className="me-2" />
+                                  Segno...
+                                </>
+                              ) : (
+                                <>
+                                  <MDBIcon fas icon="check-double" className="me-2" />
+                                  Segna tutte come lette
+                                </>
+                              )}
+                            </MDBBtn>
+                          </MDBCol>
+                        </MDBRow>
 
-                                    {a.description && (
-                                      <div className="text-muted small">{a.description}</div>
-                                    )}
-                                  </div>
-
-                                  <div className="d-flex flex-column align-items-end gap-2">
-                                    {a.scheduled_at && (
-                                      <div className="text-muted small text-nowrap">
-                                        {formatWhen(a.scheduled_at)}
-                                      </div>
-                                    )}
-
-                                    <MDBBtn
-                                      size="sm"
-                                      color="primary"
-                                      disabled={viewedNfo.has(a.nfo_uid) || markingSeen.has(a.nfo_uid)}
-                                      onClick={() => markViewed(a.nfo_uid)}
-                                    >
-                                      {viewedNfo.has(a.nfo_uid)
-                                        ? "Visualizzato"
-                                        : markingSeen.has(a.nfo_uid)
-                                          ? "Salvo..."
-                                          : "Visualizza"}
-                                    </MDBBtn>
-                                  </div>
-                                </div>
-                              </MDBListGroupItem>
-                            ))}
-                          </MDBListGroup>
-                        </>
-                      )}
-
-                      {/* REPORTS del gruppo */}
-                      {g.reports.length > 0 && (
-                        <>
-                          <div className="d-flex align-items-center justify-content-between mb-2">
-                            <MDBTypography tag="div" className="mb-0 fw-semibold">
+                        {/* REPORTS */}
+                        {g.reports?.length > 0 && (
+                          <>
+                            <MDBTypography
+                              tag="div"
+                              className="mb-2 fw-semibold"
+                              style={{ color: "rgba(0,0,0,.55)" }}
+                            >
+                              <MDBIcon far icon="file-alt" className="me-2" />
                               Reports
                             </MDBTypography>
-                            <MDBBadge color="primary" pill>
-                              {g.reports.length}
-                            </MDBBadge>
-                          </div>
 
-                          <MDBListGroup>
-                            {g.reports.map((r) => (
-                              <MDBListGroupItem
-                                key={r.nfo_uid}
-                                className={`py-3 ${removingNfo.has(r.nfo_uid) ? "nfo-exit" : ""}`}
-                              >
-                                <div className="d-flex align-items-start justify-content-between gap-3">
-                                  <div>
-                                    <div className="fw-bold">
-                                      {r.title}
-                                      {r.month_num && r.year ? (
-                                        <span className="text-muted fw-normal ms-2 small">
-                                          ({formatMonthYearIT(r.month_num, r.year)})
-                                        </span>
-                                      ) : null}
-                                    </div>
+                            <MDBListGroup className="mb-3" style={{ gap: 10 }}>
+                              {g.reports.map((r) => {
+                                const isViewed = viewedNfo.has(r.nfo_uid);
+                                const isMarking = markingSeen.has(r.nfo_uid);
 
-                                    {r.description && (
-                                      <div className="text-muted small">{r.description}</div>
-                                    )}
-                                  </div>
+                                return (
+                                  <MDBListGroupItem
+                                    key={r.nfo_uid}
+                                    className={[
+                                      "border",
+                                      removingNfo.has(r.nfo_uid) ? "nfo-exit" : "",
+                                    ].join(" ")}
+                                    style={{
+                                      padding: isMobile ? "12px 12px" : "14px 14px",
+                                      borderColor: "rgba(0,0,0,.08)",
+                                      borderRadius: 12,
+                                      background: "#fff",
+                                      opacity: isViewed ? 0.78 : 1,
+                                    }}
+                                  >
+                                    {/* ✅ Item con grid: 2 cols arriba + botón abajo en mobile */}
+                                    <MDBRow className="g-2 align-items-center">
+                                      {/* left: dot + icon */}
+                                      {!isMobile &&
+                                        <MDBCol xs="2" md="2" lg="2" xl="2" className="d-flex align-items-center gap-2">
+                                          {!isViewed ? (
+                                            <div
+                                              style={{
+                                                width: 8,
+                                                height: 8,
+                                                borderRadius: 999,
+                                                background: "#2d6cff",
+                                              }}
+                                            />
+                                          ) : (
+                                            <div style={{ width: 8, height: 8 }} />
+                                          )}
 
-                                  <div className="d-flex flex-column align-items-end gap-2">
-                                    {r.scheduled_at && (
-                                      <div className="text-muted small text-nowrap">
-                                        {formatWhen(r.scheduled_at)}
-                                      </div>
-                                    )}
+                                          <div
+                                            className="d-flex align-items-center justify-content-center"
+                                            style={{
+                                              width: 44,
+                                              height: 44,
+                                              borderRadius: 12,
+                                              background: "rgba(45,108,255,.10)",
+                                            }}
+                                          >
+                                            <MDBIcon far icon="file-alt" className="text-primary" />
+                                          </div>
+                                        </MDBCol>
+                                      }
 
-                                    <MDBBtn
-                                      size="sm"
-                                      color="primary"
-                                      disabled={viewedNfo.has(r.nfo_uid) || markingSeen.has(r.nfo_uid)}
-                                      onClick={() => markViewed(r.nfo_uid)}
-                                    >
-                                      {viewedNfo.has(r.nfo_uid)
-                                        ? "Visualizzato"
-                                        : markingSeen.has(r.nfo_uid)
-                                          ? "Salvo..."
-                                          : "Visualizza"}
-                                    </MDBBtn>
-                                  </div>
-                                </div>
-                              </MDBListGroupItem>
-                            ))}
-                          </MDBListGroup>
-                        </>
-                      )}
-                    </div>
-                  ))}
+                                      {/* center: text */}
+                                      <MDBCol xs="10" md="10" lg="8" xl="8">
+                                        <div className="fw-bold text-dark" style={{ lineHeight: 1.2 }}>
+                                          {r.title}
+                                          {r.month_num && r.year ? (
+                                            <span
+                                              className="text-muted fw-normal ms-2"
+                                              style={{ fontSize: ".85rem" }}
+                                            >
+                                              ({formatMonthYearIT(r.month_num, r.year)})
+                                            </span>
+                                          ) : null}
+                                        </div>
+
+                                        {r.description ? (
+                                          <div
+                                            style={{
+                                              fontSize: ".9rem",
+                                              color: "rgba(0,0,0,.55)",
+                                              marginTop: 2,
+                                            }}
+                                          >
+                                            {r.description}
+                                          </div>
+                                        ) : null}
+
+                                        {r.scheduled_at ? (
+                                          <div
+                                            style={{
+                                              fontSize: ".85rem",
+                                              color: "rgba(0,0,0,.45)",
+                                              marginTop: 8,
+                                            }}
+                                          >
+                                            {formatWhen(r.scheduled_at)}
+                                          </div>
+                                        ) : null}
+                                      </MDBCol>
+
+                                      {/* button row */}
+                                      <MDBCol xs="12" md="12" lg="2" xl="2" className={isMobile ? "pt-1" : "text-end"}>
+                                        <MDBBtn
+                                          size="sm"
+                                          color="primary"
+                                          className={isMobile ? "w-100 rounded-4" : "rounded-4 text-nowrap"}
+                                          disabled={isViewed || isMarking}
+                                          onClick={() => markViewed(r.nfo_uid)}
+                                        >
+                                          {isViewed ? "Visualizzato" : isMarking ? "Salvo..." : "Visualizza"}
+                                        </MDBBtn>
+                                      </MDBCol>
+                                    </MDBRow>
+                                  </MDBListGroupItem>
+                                );
+                              })}
+                            </MDBListGroup>
+                          </>
+                        )}
+
+                        {/* ALERTS */}
+                        {g.alerts?.length > 0 && (
+                          <>
+                            <MDBTypography
+                              tag="div"
+                              className="mb-2 fw-semibold"
+                              style={{ color: "rgba(0,0,0,.55)" }}
+                            >
+                              <MDBIcon fas icon="exclamation-triangle" className="me-2" />
+                              Alerts
+                            </MDBTypography>
+
+                            <MDBListGroup style={{ gap: 10 }}>
+                              {g.alerts.map((a) => {
+                                const isViewed = viewedNfo.has(a.nfo_uid);
+                                const isMarking = markingSeen.has(a.nfo_uid);
+
+                                return (
+                                  <MDBListGroupItem
+                                    key={a.nfo_uid}
+                                    className={[
+                                      "border",
+                                      removingNfo.has(a.nfo_uid) ? "nfo-exit" : "",
+                                    ].join(" ")}
+                                    style={{
+                                      padding: isMobile ? "12px 12px" : "14px 14px",
+                                      borderColor: "rgba(0,0,0,.08)",
+                                      borderRadius: 12,
+                                      background: "#fff",
+                                      opacity: isViewed ? 0.78 : 1,
+                                    }}
+                                  >
+                                    <MDBRow className="g-2 align-items-center">
+                                      {!isMobile &&
+                                        <MDBCol xs="2" md="2" lg="2" xl="2" className="d-flex align-items-center gap-2">
+                                          {!isViewed ? (
+                                            <div
+                                              style={{
+                                                width: 8,
+                                                height: 8,
+                                                borderRadius: 999,
+                                                background: "#2d6cff",
+                                              }}
+                                            />
+                                          ) : (
+                                            <div style={{ width: 8, height: 8 }} />
+                                          )}
+
+                                          <div
+                                            className="d-flex align-items-center justify-content-center"
+                                            style={{
+                                              width: 44,
+                                              height: 44,
+                                              borderRadius: 12,
+                                              background: "rgba(255,159,67,.14)",
+                                            }}
+                                          >
+                                            <MDBIcon fas icon="exclamation-triangle" style={{ color: "#ff9f43" }} />
+                                          </div>
+                                        </MDBCol>
+                                      }
+
+                                      <MDBCol xs="10" md="10" lg="8" xl="8">
+                                        <div className="fw-bold text-dark" style={{ lineHeight: 1.2 }}>
+                                          {a.title}
+                                          {a.month_num && a.year ? (
+                                            <span
+                                              className="text-muted fw-normal ms-2"
+                                              style={{ fontSize: ".85rem" }}
+                                            >
+                                              ({formatMonthYearIT(a.month_num, a.year)})
+                                            </span>
+                                          ) : null}
+                                        </div>
+
+                                        {a.description ? (
+                                          <div
+                                            style={{
+                                              fontSize: ".9rem",
+                                              color: "rgba(0,0,0,.55)",
+                                              marginTop: 2,
+                                            }}
+                                          >
+                                            {a.description}
+                                          </div>
+                                        ) : null}
+
+                                        {a.scheduled_at ? (
+                                          <div
+                                            style={{
+                                              fontSize: ".85rem",
+                                              color: "rgba(0,0,0,.45)",
+                                              marginTop: 8,
+                                            }}
+                                          >
+                                            {formatWhen(a.scheduled_at)}
+                                          </div>
+                                        ) : null}
+                                      </MDBCol>
+
+                                      <MDBCol xs="12" md="12" lg="2" xl="2" className={isMobile ? "pt-1" : "text-end"}>
+                                        <MDBBtn
+                                          size="sm"
+                                          color="primary"
+                                          className={isMobile ? "w-100 rounded-4" : "rounded-4 text-nowrap"}
+                                          disabled={isViewed || isMarking}
+                                          onClick={() => markViewed(a.nfo_uid)}
+                                        >
+                                          {isViewed ? "Visualizzato" : isMarking ? "Salvo..." : "Visualizza"}
+                                        </MDBBtn>
+                                      </MDBCol>
+                                    </MDBRow>
+                                  </MDBListGroupItem>
+                                );
+                              })}
+                            </MDBListGroup>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
                 </>
               )}
-
             </MDBModalBody>
 
-            <MDBModalFooter>
-              <MDBBtn color="secondary" onClick={toggleNotifCenter}>
+            <MDBModalFooter className="bg-white border-top">
+              <MDBBtn
+                color="secondary"
+                onClick={toggleNotifCenter}
+                className={isMobile ? "w-100" : ""}
+              >
                 Chiudi
               </MDBBtn>
             </MDBModalFooter>

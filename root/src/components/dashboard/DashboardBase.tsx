@@ -588,7 +588,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                 throw new Error(response.message ?? "presets.error");
             }
 
-       
+
             setChangeDetect2(false);
             openSaveModal("success", "✅ Salvato correttamente!");
         } catch (e: any) {
@@ -617,6 +617,22 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
             };
         });
     }, [pipeData]);
+
+    const tickEvery = isMobile ? 6 : 1;
+
+    const xTickValues = useMemo(() => {
+        const firstSerie = lineData?.[0]?.data ?? [];
+        return firstSerie
+            .filter((_, i) => i % tickEvery === 0)
+            .map((p: any) => p.x);
+    }, [lineData]);
+
+    const xTickValues2 = useMemo(() => {
+        const firstSerie = backtestData?.[0]?.data ?? [];
+        return firstSerie
+            .filter((_, i) => i % tickEvery === 0)
+            .map((p: any) => p.x);
+    }, [backtestData]);
 
     return (
         <>
@@ -1318,6 +1334,11 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                             if (serie.id === "Autodidatta") return "#E4A119";
                                             return "#E11D2E";
                                         }}
+                                        axisBottom={{
+                                            tickValues: xTickValues,
+                                            tickPadding: 6,
+                                            tickSize: 5,
+                                        }}
                                         useMesh={true}
                                         enableTouchCrosshair={true}
                                         enableSlices="x"
@@ -1556,6 +1577,11 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                         data={backtestData}
                                         margin={{ top: 20, right: 20, bottom: isMobile ? 90 : 100, left: 50 }}
                                         xScale={{ type: "point" }}
+                                        axisBottom={{
+                                            tickValues: xTickValues2,
+                                            tickPadding: 6,
+                                            tickSize: 5,
+                                        }}
                                         yScale={{ type: "linear", min: "auto", max: "auto", stacked: false }}
                                         colors={(serie) => (serie as any).color}
                                         lineWidth={2}

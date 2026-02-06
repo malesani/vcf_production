@@ -339,8 +339,8 @@ const Portfolio: React.FC = () => {
                   <MDBCardHeader className="py-3 px-4 border-bottom">
                     <MDBRow className="align-items-center gy-2 gx-3">
                       {/* Titolo e badge */}
-                      <MDBCol xs="12" md="8" className="d-flex justify-content-between w-100">
-                        <MDBCardTitle tag="h5" className="mb-0 d-flex align-items-center flex-wrap text-truncate">
+                      <MDBCol xs="12" md="8" className="d-flex justify-content-between align-items-center w-100">
+                        <MDBCardTitle tag="h5" className="w-75 mb-0 d-flex align-items-center flex-wrap text-truncate">
                           <span
                             className="me-2 fs-6 mb-2 mb-sm-0"
                             style={{ background: "rgba(69, 85, 108, 1)", borderRadius: "8px", padding: "3px 6px", fontWeight: "400" }}
@@ -359,10 +359,10 @@ const Portfolio: React.FC = () => {
                         </MDBCardTitle>
 
                         {/* DELETE BTN -> OPEN MODAL */}
-                        <MDBBtn onClick={toggleDeleteModal} className="me-1" color="danger" disabled={deleting}>
+                        <div onClick={toggleDeleteModal} className="me-1 w-15" color="danger" style={{height:"10%", cursor: "pointer"}}>
                           <MDBIcon fas icon="trash" className={!isMobile ? "me-2" : ""} />
                           {!isMobile ? "Elimina" : ""}
-                        </MDBBtn>
+                        </div>
                       </MDBCol>
                     </MDBRow>
                   </MDBCardHeader>

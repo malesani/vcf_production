@@ -512,6 +512,17 @@ const BacktestingItem: React.FC = () => {
         }
     };
 
+
+    const tickEvery = isMobile ? 8 : 4; // ajusta: mobile 6, desktop 10 (o lo que quieras)
+
+    const xTickValues = useMemo(() => {
+        // pillo la serie que siempre tenga datos
+        const serie = miniDataDb?.[0]?.data?.length ? miniDataDb[0].data : (withoutSaving?.[0]?.data ?? []);
+        return serie
+            .filter((_, i) => i % tickEvery === 0)
+            .map((p: any) => p.x);
+    }, [miniDataDb, withoutSaving, tickEvery]);
+
     /** ==================== UI ==================== */
     return (
         <>
@@ -589,7 +600,7 @@ const BacktestingItem: React.FC = () => {
 
                                                             <MDBCol xs="12" md="12">
                                                                 <label className="form-label fw-bold" style={ui.label}>
-                                                                    Orizzonte passato: {tempoInvestimento} anni
+                                                                    Orizzonte anni passati:
                                                                 </label>
                                                                 <MDBRange
                                                                     min="1"
@@ -743,7 +754,13 @@ const BacktestingItem: React.FC = () => {
                                                     margin={isMobile ? { top: 20, right: 20, bottom: 60, left: 40 } : { top: 30, right: 30, bottom: 60, left: 60 }}
                                                     xScale={{ type: "point" }}
                                                     yScale={{ type: "linear", min: "auto", max: "auto", stacked: false }}
-                                                    axisBottom={null}
+
+                                                    axisBottom={{
+                                                        tickValues: xTickValues,
+                                                        tickPadding: 6,
+                                                        tickSize: 5,
+                                                    }}
+
                                                     enableGridY={false}
                                                     pointSize={isMobile ? 4 : 6}
                                                     useMesh={true}
@@ -759,7 +776,8 @@ const BacktestingItem: React.FC = () => {
                                                             }}
                                                         >
                                                             <div style={{ fontSize: 12, marginBottom: 6, color: "#555" }}>
-                                                                <strong>Data:</strong> {new Date(slice.points[0].data.x as string).toLocaleDateString("it-IT")}
+                                                                <strong>Data:</strong>{" "}
+                                                                {new Date(slice.points[0].data.x as string).toLocaleDateString("it-IT")}
                                                             </div>
 
                                                             {slice.points.map((point) => (

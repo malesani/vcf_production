@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CustomCarouselMultiItems } from '../components/CustomCarouselMultiItems';
 import General_Loading from "../app_components/General_Loading";
 import {
@@ -17,6 +17,7 @@ import {
 // import LineChart from '../components/simulation/LineChart';
 import { NivoPie, PieDatum } from '../components/simulation/NivoPie';
 import { fetchManagedPortfoliosActive, PortManagedInfo } from '../api_module/portfolioManaged/PortManagedData';
+import { useIsMobile } from "../app_components/ResponsiveModule";
 
 let pieData: PieDatum[] =
     [
@@ -50,13 +51,38 @@ let pieData: PieDatum[] =
 
 
 const ManagedList: React.FC = () => {
-
+    const isMobile = useIsMobile(992);
     const [loadingMode, setLoadingMode] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(true);
 
     const [managedPortfoliosInfo, setManagedPortfoliosInfo] = useState<PortManagedInfo[]>([]);
 
-    // FETCH DATA
+    const ui = useMemo(() => {
+        return {
+            // font
+            hSection: { fontSize: isMobile ? "14px" : "1rem" }, // titoli delle sezioni (header blu)
+            subSection: { fontSize: isMobile ? "11px" : "0.8rem" }, // sottotitoli header blu
+            hCardTitle: { fontSize: isMobile ? "13px" : "" }, // strong nelle card piccole
+            pill: { fontSize: isMobile ? "10px" : "0.75rem" },
+            textSmall: { fontSize: isMobile ? "12px" : "" },
+            textBody: { fontSize: isMobile ? "13px" : "0.95rem" },
+            numberBig: { fontSize: isMobile ? "1.6rem" : "2rem" },
+
+            // padding
+            headerPadClass: isMobile ? "p-3" : "p-3 py-md-3 px-md-4",
+            bodyPadClass: isMobile ? "p-3" : "p-3 p-md-4",
+
+            // etichette
+            label: { color: "#21384A", fontWeight: 700, fontSize: isMobile ? "12px" : "13px" },
+
+            // avvisi
+            alertText: { fontSize: isMobile ? "13px" : "14px" },
+            alertFine: { fontSize: isMobile ? "12px" : "12px" },
+        };
+    }, [isMobile]);
+
+
+    // RECUPERO DATI
     useEffect(() => {
         setLoadingMode(true);
 
@@ -71,7 +97,7 @@ const ManagedList: React.FC = () => {
                 console.error("Errore caricamento Stocks Info:", err);
             })
     }, []);
-    // END
+    // FINE
 
     useEffect(() => {
         if (managedPortfoliosInfo) {
@@ -80,7 +106,7 @@ const ManagedList: React.FC = () => {
         }
     }, [managedPortfoliosInfo]);
 
-    // SET LOADING
+    // IMPOSTA LOADING
     if (loadingMode) {
         return (<General_Loading theme="pageLoading" title='' />);
     }
@@ -88,19 +114,19 @@ const ManagedList: React.FC = () => {
 
     return (
         <div>
-            <MDBContainer fluid>
+            <MDBContainer fluid className='py-3 py-md-2 px-0'>
                 <MDBRow className=''>
                     <MDBCol>
-                        <div className="py-2 mb-3">
-                            <div className="d-flex flex-row align-items-center">
+                        <div className="">
+                            <div className="d-flex flex-row align-items-center mb-2">
                                 {/* <i className="fas fa-list-alt me-2"></i> */}
-                                <span className="fs-2 fw-bold text-dark">
+                                <span className="fs-4 fw-bold text-dark">
                                     I nostri portafogli gestiti
                                 </span>
                             </div>
                             <div className="d-flex">
-                                <span className="text-muted fs-5">
-                                    Scopri come avrebbe performato storicamente un portafoglio di investimenti, <br />
+                                <span className="text-muted" style={ui.textBody}>
+                                    Scopri come avrebbe performato storicamente un portafoglio di investimenti,
                                     Dai un'occhiata ai nostri portafogli più eccezionali
                                 </span>
                             </div>
@@ -110,78 +136,15 @@ const ManagedList: React.FC = () => {
                 <MDBRow className='mb-4'>
                     <MDBCol>
                         <CustomCarouselMultiItems></CustomCarouselMultiItems>
-
                     </MDBCol>
                 </MDBRow>
 
-                <MDBRow className=''>
+                <MDBRow className='mb-3'>
                     <MDBCol>
-                        <h3 className="my-4 text-dark">Esplora i nostri portafoli selezionati</h3>
+                        <span className="fs-4 fw-bold text-dark">Esplora i nostri portafoli selezionati</span>
                     </MDBCol>
                 </MDBRow>
-                <MDBRow className="align-items-center mb-4">
-                    <MDBCol>
-                        <MDBCard className="shadow-sm border-0 rounded-3">
-                            <MDBCardBody className="py-2 px-3">
-                                <MDBRow className="align-items-center">
-                                    {/* Label "Filtra per" */}
-                                    <MDBCol size="auto">
-                                        <span className="fw-semibold text-muted">Filtra per:</span>
-                                    </MDBCol>
 
-                                    {/* Dropdown Livello di Rischio */}
-                                    <MDBCol size="auto">
-                                        <MDBDropdown>
-                                            <MDBDropdownToggle color="light" className="me-2">
-                                                Livello di Rischio
-                                            </MDBDropdownToggle>
-                                            <MDBDropdownMenu>
-                                                <MDBDropdownItem link>Basso</MDBDropdownItem>
-                                                <MDBDropdownItem link>Medio</MDBDropdownItem>
-                                                <MDBDropdownItem link>Alto</MDBDropdownItem>
-                                            </MDBDropdownMenu>
-                                        </MDBDropdown>
-                                    </MDBCol>
-
-                                    {/* Dropdown Tipo di Attivo */}
-                                    <MDBCol size="auto">
-                                        <MDBDropdown>
-                                            <MDBDropdownToggle color="light" className="me-2">
-                                                Tipo di Attivo
-                                            </MDBDropdownToggle>
-                                            <MDBDropdownMenu>
-                                                <MDBDropdownItem link>Azioni</MDBDropdownItem>
-                                                <MDBDropdownItem link>Obbligazioni</MDBDropdownItem>
-                                                <MDBDropdownItem link>Fondi</MDBDropdownItem>
-                                            </MDBDropdownMenu>
-                                        </MDBDropdown>
-                                    </MDBCol>
-
-                                    {/* Dropdown Strategia */}
-                                    <MDBCol size="auto">
-                                        <MDBDropdown>
-                                            <MDBDropdownToggle color="light" className="me-2">
-                                                Strategia
-                                            </MDBDropdownToggle>
-                                            <MDBDropdownMenu>
-                                                <MDBDropdownItem link>Valore</MDBDropdownItem>
-                                                <MDBDropdownItem link>Crescita</MDBDropdownItem>
-                                                <MDBDropdownItem link>Reddito</MDBDropdownItem>
-                                            </MDBDropdownMenu>
-                                        </MDBDropdown>
-                                    </MDBCol>
-
-                                    {/* Pulisci Filtri */}
-                                    <MDBCol className="text-end">
-                                        <a href="#!" className="text-primary fw-semibold small">
-                                            Pulisci Filtri
-                                        </a>
-                                    </MDBCol>
-                                </MDBRow>
-                            </MDBCardBody>
-                        </MDBCard>
-                    </MDBCol>
-                </MDBRow>
                 <MDBRow className="g-3 mb-4">
                     {loading && (
                         <General_Loading theme="formLoading" text="Caricamento Portafogli" />

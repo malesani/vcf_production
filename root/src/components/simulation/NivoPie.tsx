@@ -26,7 +26,7 @@ export const NivoPie: React.FC<PieProps> = ({ data, pieData }) => {
         <MDBCol>
             <MDBCard className="shadow-3 mb-3" style={{ borderRadius: "15px" }}>
                 {/* Header */}
-                <MDBCardHeader className="text-white text-center fs-5 fw-bold" style={{ backgroundColor: "#263550" }}>
+                <MDBCardHeader className="text-white fs-5 fw-bold" style={{ backgroundColor: "#263550" }}>
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width="20"
@@ -56,7 +56,7 @@ export const NivoPie: React.FC<PieProps> = ({ data, pieData }) => {
                             </clipPath>
                         </defs>
                     </svg>
-                    <span className=" fw-semibold  ms-2">{data.title.slice(0,20)}</span>
+                    <span className=" fw-semibold  ms-2">{data.title.slice(0,30)}</span>
                 </MDBCardHeader>
 
                 {/* Body */}

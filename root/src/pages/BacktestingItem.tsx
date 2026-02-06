@@ -20,6 +20,7 @@ import {
     MDBModalDialog,
     MDBModalHeader,
     MDBModalTitle,
+    MDBModalFooter,
     MDBSelect,
     MDBInput,
     MDBRange,
@@ -30,12 +31,18 @@ import { ResponsiveLine } from "@nivo/line";
 import { ResponsivePie } from "@nivo/pie";
 import { useParams } from "react-router-dom";
 import { useIsMobile } from "../app_components/ResponsiveModule";
-import { update_backtesting_assets, update_backtesting } from "../api_module/backtesting/BacktestingData";
-import { get_backtestingByUID, run_backtesting_series } from "../api_module/backtesting/BacktestingData";
+import {
+    update_backtesting_assets,
+    update_backtesting,
+    get_backtestingByUID,
+    run_backtesting_series,
+    delete_backtesting,
+} from "../api_module/backtesting/BacktestingData";
 import { BacktestingInfo } from "../api_module/backtesting/constants";
-import { getStocksInfo } from '../api_module_v1/FinancialDataRequest';
-import { APIStockInfo } from '../api_module_v1/FinancialDataRequest'
-import { General_Loading } from '../app_components/General_Loading';
+import { getStocksInfo } from "../api_module_v1/FinancialDataRequest";
+import { APIStockInfo } from "../api_module_v1/FinancialDataRequest";
+import { General_Loading } from "../app_components/General_Loading";
+import { useNavigate } from "react-router-dom";
 
 type Point = { x: string; y: number };
 type Serie = { id: string; data: Point[] };
@@ -128,8 +135,9 @@ const BacktestingItem: React.FC = () => {
     const { bt_item_uid } = useParams<{ bt_item_uid: string }>();
     const isMobile = useIsMobile(992);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
-    // state 
+    // state
     const [title, setTitle] = useState<string>("");
     const [description, setDescription] = useState<string>("");
     const [investimentoIniziale, setInvestimentoInizialeProp] = useState<number>();
@@ -140,30 +148,34 @@ const BacktestingItem: React.FC = () => {
     // states calcoli di badges
     const [importoInvestito, setImportoInvestito] = useState<number>();
 
-    //stato backtest backtestRes.data => bt
+    // stato backtest backtestRes.data => bt
     const [backtest, setBacktest] = useState<BacktestingInfo | null>(null);
 
-    //stato  bt.assets = gli assets di backtest
+    // stato bt.assets = gli assets di backtest
     const [assetsDb, setAssetsDb] = useState<Array<{ symbol: string; weight_pct: number }>>([]);
 
-    //risultato data per nivo backtesting
+    // risultato data per nivo backtesting
     const [miniDataDb, setMiniDataDb] = useState<Serie[]>([]);
     const [withoutSaving, setWithoutSaving] = useState<Serie[]>([]);
-
 
     /** ======= modal editor state ======= */
     const [modalOpen, setModalOpen] = useState<boolean>(false);
     const [savingAssets, setSavingAssets] = useState(false);
 
-    //per generare le rows vuote e con dati caricati
+    // per generare le rows vuote e con dati caricati
     const [assetRows, setAssetRows] = useState<AssetRow[]>([]);
 
-    //per save blocco sinistra 
+    // per save blocco sinistra
     const [savingParams, setSavingParams] = useState(false);
 
-    //per caricamento e pre caricamento dati del edit degli assets
+    // per caricamento e pre caricamento dati del edit degli assets
     const [stocksInfoOptions, setStocksInfoOptions] = useState<APIStockInfo[]>([]);
-    const [query, setQuery] = useState<String>("")
+    const [query, setQuery] = useState<String>("");
+
+    /** ===== delete modal state ===== */
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const toggleDeleteModal = () => setDeleteModalOpen((v) => !v);
 
     const totalAllocation = assetsDb.reduce((acc, f) => acc + f.weight_pct, 0);
 
@@ -182,8 +194,6 @@ const BacktestingItem: React.FC = () => {
             value: a.weight_pct,
         }));
     }, [assetsDb]);
-
-
 
     const ui = useMemo(() => {
         return {
@@ -211,35 +221,29 @@ const BacktestingItem: React.FC = () => {
 
         const num_of_records = miniDataDb[0].data.length;
 
-        console.log("miniDataDb", miniDataDb);
-
-        const without_saving_raw: Serie[] = [{
-            id: 'Senza Investire',
-            data: []
-        }];
+        const without_saving_raw: Serie[] = [
+            {
+                id: "Senza Investire",
+                data: [],
+            },
+        ];
 
         for (let i = 0; i < num_of_records; i++) {
             without_saving_raw[0].data.push({
                 x: miniDataDb[0].data[i].x,
-                y: (investimentoIniziale??0) + (i*(contributoMensile??0))
+                y: (investimentoIniziale ?? 0) + i * (contributoMensile ?? 0),
             });
         }
 
-        // salva nello state
         setWithoutSaving(without_saving_raw);
-    }, [miniDataDb]);
-
-    useEffect(() => {
-        console.log("withoutSaving", withoutSaving);
-    },[withoutSaving]);
-
+    }, [miniDataDb, investimentoIniziale, contributoMensile]);
 
     const loadStocksInfo = useCallback(async () => {
         try {
             const resp = await getStocksInfo();
             if (resp.response.success && resp.data && isMountedRef.current) {
                 setStocksInfoOptions(
-                    resp.data.map(stockInfo => ({
+                    resp.data.map((stockInfo) => ({
                         symbol: stockInfo.symbol,
                         name: `${stockInfo.name} (${stockInfo.symbol})`,
                     }))
@@ -267,13 +271,9 @@ const BacktestingItem: React.FC = () => {
             setInvestimentoInizialeProp(bt.cash_position);
             setContributoMensile(bt.automatic_savings);
             setTitle(bt.title);
-            setTempoInvestimento(bt.time_horizon_years ? bt.time_horizon_years : 1)
+            setTempoInvestimento(bt.time_horizon_years ? bt.time_horizon_years : 1);
 
-            /////
-
-            setImportoInvestito(
-                bt.cash_position + (bt.automatic_savings * 12 * bt.time_horizon_years - 1)
-            );
+            setImportoInvestito(bt.cash_position + bt.automatic_savings * 12 * (bt.time_horizon_years - 1));
 
             const dbAssets = Array.isArray(bt.assets)
                 ? bt.assets
@@ -304,7 +304,7 @@ const BacktestingItem: React.FC = () => {
 
             const lastDatePossible = new Date(seriesRes.data.min_possible_from).getFullYear();
             const currentYear = new Date().getFullYear();
-            const maxData = (currentYear - lastDatePossible > 40) ? 40 : currentYear - lastDatePossible;
+            const maxData = currentYear - lastDatePossible > 40 ? 40 : currentYear - lastDatePossible;
             const portfolioSerie =
                 seriesRes.data.series.find((s) => String(s.id).toLowerCase() === "portfolio") ??
                 seriesRes.data.series.find((s) => String(s.id).toLowerCase() === "portf") ??
@@ -322,45 +322,33 @@ const BacktestingItem: React.FC = () => {
         }
     }, []);
 
-    const loadAll = useCallback(async (uid: string) => {
-        setLoading(true);
-        try {
-            await Promise.all([
-                loadStocksInfo(),
-                loadBacktest(uid),
-            ]);
-        } finally {
-            if (isMountedRef.current) setLoading(false);
-        }
-    }, [loadStocksInfo, loadBacktest]);
-
+    const loadAll = useCallback(
+        async (uid: string) => {
+            setLoading(true);
+            try {
+                await Promise.all([loadStocksInfo(), loadBacktest(uid)]);
+            } finally {
+                if (isMountedRef.current) setLoading(false);
+            }
+        },
+        [loadStocksInfo, loadBacktest]
+    );
 
     useEffect(() => {
         if (!bt_item_uid) return;
         loadAll(bt_item_uid);
     }, [bt_item_uid, loadAll]);
 
-
-    useEffect (() => {
-
-    }, [])
-
     const stocksInfoOptions50 = useMemo(() => {
         const q = (query ?? "").toString().trim().toLowerCase();
 
-        const filtered =
-            q.length === 0
-                ? stocksInfoOptions
-                : stocksInfoOptions.filter((opt) =>
-                    opt.name.toLowerCase().includes(q) ||
-                    opt.symbol.toLowerCase().includes(q)
-                );
+        const filtered = q.length === 0 ? stocksInfoOptions : stocksInfoOptions.filter((opt) => opt.name.toLowerCase().includes(q) || opt.symbol.toLowerCase().includes(q));
 
         // simboli già selezionati nelle righe
-        const selectedSymbols = new Set(assetRows.map(r => r.symbol).filter(Boolean));
+        const selectedSymbols = new Set(assetRows.map((r) => r.symbol).filter(Boolean));
 
         // lookup veloce
-        const bySymbol = new Map(stocksInfoOptions.map(o => [o.symbol, o] as const));
+        const bySymbol = new Map(stocksInfoOptions.map((o) => [o.symbol, o] as const));
 
         // merge + dedupe O(n) con Map
         const merged = new Map<string, APIStockInfo>();
@@ -388,27 +376,27 @@ const BacktestingItem: React.FC = () => {
             })),
         [stocksInfoOptions50]
     );
-    const lastQRef = useRef("");
 
+    const lastQRef = useRef("");
 
     const searchFn = useCallback((q: string, data: any[]) => {
         const qq = (q ?? "").toLowerCase().trim();
 
         if (q !== lastQRef.current) {
             lastQRef.current = q;
-            setQuery(q); // opcional: solo si querés tenerlo en state para otra cosa
+            setQuery(q);
         }
 
-        const filtered = qq.length === 0
-            ? data
-            : data.filter(opt =>
-                String(opt.text ?? "").toLowerCase().includes(qq) ||
-                String(opt.value ?? "").toLowerCase().includes(qq)
-            );
+        const filtered =
+            qq.length === 0
+                ? data
+                : data.filter(
+                    (opt) =>
+                        String(opt.text ?? "").toLowerCase().includes(qq) || String(opt.value ?? "").toLowerCase().includes(qq)
+                );
 
         return filtered.slice(0, 50);
     }, []);
-
 
     /** ==================== PRELOAD ROWS WHEN MODAL OPENS ==================== */
     useEffect(() => {
@@ -416,24 +404,18 @@ const BacktestingItem: React.FC = () => {
         setAssetRows(assetsDb.length ? assetsDb.map((a) => makeRow({ symbol: a.symbol, weight_pct: a.weight_pct })) : [makeRow()]);
     }, [modalOpen, assetsDb]); // eslint-disable-line react-hooks/exhaustive-deps
 
-
     /** ==================== ROW HANDLERS ==================== */
     const addEmptyRow = () => setAssetRows((prev) => [...prev, makeRow()]);
 
     const removeRow = (key: string) => setAssetRows((prev) => prev.filter((r) => r.key !== key));
 
-    const updateRow = (key: string, patch: Partial<AssetRow>) => setAssetRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+    const updateRow = (key: string, patch: Partial<AssetRow>) =>
+        setAssetRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
 
-    const totalWeight = useMemo(
-        () => assetRows.reduce((acc, r) => acc + (Number(r.weight_pct) || 0), 0),
-        [assetRows]
-    );
+    const totalWeight = useMemo(() => assetRows.reduce((acc, r) => acc + (Number(r.weight_pct) || 0), 0), [assetRows]);
 
-
-
-    /** ==================== SAVE ASSETS (REEMPLAZA handleInsertTestAssets) ==================== */
+    /** ==================== SAVE ASSETS ==================== */
     const handleSaveAssetsFromModal = async () => {
-
         if (!bt_item_uid) return;
 
         // limpia + valida básico
@@ -450,7 +432,6 @@ const BacktestingItem: React.FC = () => {
 
         const merged = Array.from(mergedMap.entries()).map(([symbol, weight_pct]) => ({ symbol, weight_pct }));
 
-
         try {
             setSavingAssets(true);
 
@@ -461,7 +442,6 @@ const BacktestingItem: React.FC = () => {
 
             console.log("SAVE ASSETS RESULT:", res);
 
-            // actualiza badges (y a futuro puedes refrescar del backend si quieres)
             setAssetsDb(merged);
             loadAll(bt_item_uid);
             setModalOpen(false);
@@ -490,11 +470,8 @@ const BacktestingItem: React.FC = () => {
 
             console.log("UPDATE BACKTESTING RESULT:", res);
 
-            // ✅ opcional: mantener backtest en sync sin refetch
             if (res.response.success) {
-                setBacktest((prev) =>
-                    prev ? ({ ...prev, ...payload } as any) : (payload as any)
-                );
+                setBacktest((prev) => (prev ? ({ ...prev, ...payload } as any) : (payload as any)));
             }
             loadAll(bt_item_uid);
         } catch (err) {
@@ -505,11 +482,34 @@ const BacktestingItem: React.FC = () => {
     };
 
     const handleChangeRowSymbol = (rowKey: string, selected: any) => {
-        const item = Array.isArray(selected) ? selected[0] : selected; // por si viene array
+        const item = Array.isArray(selected) ? selected[0] : selected;
         const newSymbol = item?.value ? String(item.value) : "";
         if (!newSymbol) return;
-
         updateRow(rowKey, { symbol: newSymbol });
+    };
+
+    /** ==================== DELETE CONFIRM ==================== */
+    const handleConfirmDelete = async () => {
+        if (!bt_item_uid) return;
+
+        try {
+            setDeleting(true);
+            const resp = await delete_backtesting({ backtesting_uid: bt_item_uid });
+
+            console.log("DELETE BACKTESTING RESULT:", resp);
+
+            if (!resp?.response?.success) {
+                console.error("Delete failed:", resp);
+                return; // NON navigare se fallisce
+            }
+
+            setDeleteModalOpen(false);
+            navigate(`/backtesting`);
+        } catch (err) {
+            console.error("Errore delete_backtesting", err);
+        } finally {
+            setDeleting(false);
+        }
     };
 
     /** ==================== UI ==================== */
@@ -518,7 +518,7 @@ const BacktestingItem: React.FC = () => {
             <MDBContainer fluid className="py-3 py-md-4 px-0">
                 {/* PAGE HEADER */}
                 <MDBRow className="g-3 mb-4">
-                    <MDBCol xs="12">
+                    <MDBCol xs="12" className="d-flex justify-content-between">
                         <div>
                             <div className="fw-bold" style={{ fontSize: isMobile ? 20 : 28, color: "#111827" }}>
                                 {backtest?.title}
@@ -527,6 +527,13 @@ const BacktestingItem: React.FC = () => {
                                 {backtest?.description}
                             </div>
                         </div>
+
+                        {backtest && (
+                            <MDBBtn onClick={toggleDeleteModal} className="me-1 px-3 py-1" color="danger">
+                                <MDBIcon fas icon="trash" className={!isMobile ? "me-2" : ""} />
+                                {!isMobile ? "Elimina" : ""}
+                            </MDBBtn>
+                        )}
                     </MDBCol>
                 </MDBRow>
 
@@ -547,11 +554,7 @@ const BacktestingItem: React.FC = () => {
                                                     <div style={{ width: "100%", maxWidth: 520 }}>
                                                         <MDBRow className="g-3">
                                                             <MDBCol md="12">
-                                                                <MDBInput
-                                                                    label="Titolo"
-                                                                    value={title}
-                                                                    onChange={(e) => setTitle(e.target.value)}
-                                                                />
+                                                                <MDBInput label="Titolo" value={title} onChange={(e) => setTitle(e.target.value)} />
                                                             </MDBCol>
 
                                                             <MDBCol md="12">
@@ -584,7 +587,6 @@ const BacktestingItem: React.FC = () => {
                                                                 />
                                                             </MDBCol>
 
-
                                                             <MDBCol xs="12" md="12">
                                                                 <label className="form-label fw-bold" style={ui.label}>
                                                                     Orizzonte passato: {tempoInvestimento} anni
@@ -602,7 +604,6 @@ const BacktestingItem: React.FC = () => {
                                                                     color="light"
                                                                     className="border w-50"
                                                                     onClick={() => {
-                                                                        // reset a valores del backtest (como "cancel changes")
                                                                         if (!backtest) return;
                                                                         setTitle(backtest.title ?? "");
                                                                         setDescription(backtest.description ?? "");
@@ -627,10 +628,10 @@ const BacktestingItem: React.FC = () => {
                                 </MDBCardBody>
                             )}
                         </MDBCard>
-                    </MDBCol >
+                    </MDBCol>
 
                     {/* RIGHT */}
-                    < MDBCol xs="12" lg="6" >
+                    <MDBCol xs="12" lg="6">
                         <MDBCard className="loading shadow-sm rounded-4 border-0 h-100" style={{ overflow: "hidden" }}>
                             <SectionHeader
                                 ui={ui}
@@ -703,15 +704,14 @@ const BacktestingItem: React.FC = () => {
                                     </MDBCardFooter>
                                 </>
                             )}
-
                         </MDBCard>
-                    </MDBCol >
-                </MDBRow >
+                    </MDBCol>
+                </MDBRow>
 
                 {/* LINE CHART */}
-                {miniDataDb.length > 0 &&
+                {miniDataDb.length > 0 && (
                     <>
-                        < MDBRow className="g-3 mb-4" >
+                        <MDBRow className="g-3 mb-4">
                             <MDBCol xs="12">
                                 <MDBCard className="shadow-sm rounded-4 border-0">
                                     <SectionHeader ui={ui} icon="chart-line" title="Andamento storico" subtitle="Risultati della strategia nel tempo" />
@@ -719,7 +719,6 @@ const BacktestingItem: React.FC = () => {
                                         {loading ? (
                                             <General_Loading />
                                         ) : (
-
                                             <div style={{ width: "100%", height: isMobile ? 300 : 400 }}>
                                                 <div className="d-flex align-items-center justify-content-between mb-2">
                                                     <div className="small text-muted">Andamento (DB) - Assets + Portfolio</div>
@@ -738,16 +737,13 @@ const BacktestingItem: React.FC = () => {
                                                         )}
                                                     </div>
                                                 </div>
+
                                                 <ResponsiveLine
-                                                    data={[
-                                                        withoutSaving[0],
-                                                        miniDataDb[0]
-                                                    ]}
-                                                    margin={isMobile ? { top: 20, right: 20, bottom: 60, left: 50 } : { top: 30, right: 30, bottom: 60, left: 60 }}
+                                                    data={[withoutSaving[0], miniDataDb[0]]}
+                                                    margin={isMobile ? { top: 20, right: 20, bottom: 60, left: 40 } : { top: 30, right: 30, bottom: 60, left: 60 }}
                                                     xScale={{ type: "point" }}
                                                     yScale={{ type: "linear", min: "auto", max: "auto", stacked: false }}
                                                     axisBottom={null}
-
                                                     enableGridY={false}
                                                     pointSize={isMobile ? 4 : 6}
                                                     useMesh={true}
@@ -763,8 +759,7 @@ const BacktestingItem: React.FC = () => {
                                                             }}
                                                         >
                                                             <div style={{ fontSize: 12, marginBottom: 6, color: "#555" }}>
-                                                                <strong>Data:</strong>{" "}
-                                                                {new Date(slice.points[0].data.x as string).toLocaleDateString("it-IT")}
+                                                                <strong>Data:</strong> {new Date(slice.points[0].data.x as string).toLocaleDateString("it-IT")}
                                                             </div>
 
                                                             {slice.points.map((point) => (
@@ -790,34 +785,28 @@ const BacktestingItem: React.FC = () => {
                                     </MDBCardBody>
                                 </MDBCard>
                             </MDBCol>
-                        </MDBRow >
+                        </MDBRow>
 
-                        < MDBRow className="g-3" >
-                            <MDBCol xs="6" md="4" lg="2">
+                        <MDBRow className="g-3">
+                            <MDBCol xs="3" md="3" lg="3">
                                 <StatCard ui={ui} label="Importo investito" value={importoInvestito ? importoInvestito.toString() : "0"} />
                             </MDBCol>
-                            <MDBCol xs="6" md="4" lg="2">
+                            <MDBCol xs="3" md="3" lg="3">
                                 <StatCard ui={ui} label="Crescita annuale composta" value="27,51%" />
                             </MDBCol>
-                            <MDBCol xs="6" md="4" lg="2">
+                            <MDBCol xs="3" md="3" lg="3">
                                 <StatCard ui={ui} label="Valore patrimoniale netto" value={importoInvestito ? importoInvestito.toString() : "0"} />
                             </MDBCol>
-                            <MDBCol xs="6" md="4" lg="3">
+                            <MDBCol xs="3" md="3" lg="3">
                                 <StatCard ui={ui} label="Deviazione standard" value="59,19%" />
                             </MDBCol>
-                            <MDBCol xs="12" md="4" lg="3">
-                                <StatCard ui={ui} label="Rapporto di Sharpe" value="0,66" />
-                            </MDBCol>
-                        </MDBRow >
+                        </MDBRow>
                     </>
-                }
-
-
-
-            </MDBContainer >
+                )}
+            </MDBContainer>
 
             {/* ==================== MODAL: EDIT ASSETS ==================== */}
-            < MDBModal tabIndex="-1" open={modalOpen} setOpen={setModalOpen} >
+            <MDBModal tabIndex="-1" open={modalOpen} setOpen={setModalOpen}>
                 <MDBModalDialog centered size="lg">
                     <MDBModalContent>
                         <MDBModalHeader>
@@ -849,7 +838,12 @@ const BacktestingItem: React.FC = () => {
                                                 value={row.symbol}
                                                 onChange={(val) => handleChangeRowSymbol(row.key, val)}
                                                 searchFn={searchFn}
-                                                search onResize={undefined} onResizeCapture={undefined} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined} />
+                                                search
+                                                onResize={undefined}
+                                                onResizeCapture={undefined}
+                                                onPointerEnterCapture={undefined}
+                                                onPointerLeaveCapture={undefined}
+                                            />
                                         </MDBCol>
 
                                         <MDBCol md="3">
@@ -883,20 +877,44 @@ const BacktestingItem: React.FC = () => {
                                         Cancel
                                     </MDBBtn>
 
-                                    {totalWeight == 100 && (
-                                        <MDBBtn
-                                            disabled={savingAssets || !bt_item_uid || totalWeight !== 100}
-                                            onClick={handleSaveAssetsFromModal}>
+                                    {totalWeight === 100 && (
+                                        <MDBBtn disabled={savingAssets || !bt_item_uid || totalWeight !== 100} onClick={handleSaveAssetsFromModal}>
                                             {savingAssets ? "Saving..." : "Save assets"}
                                         </MDBBtn>
                                     )}
-
                                 </div>
                             </div>
                         </MDBModalBody>
                     </MDBModalContent>
                 </MDBModalDialog>
-            </MDBModal >
+            </MDBModal>
+
+            {/* ==================== MODAL: DELETE CONFIRM ==================== */}
+            <MDBModal open={deleteModalOpen} setOpen={setDeleteModalOpen} tabIndex="-1">
+                <MDBModalDialog centered>
+                    <MDBModalContent>
+                        <MDBModalHeader>
+                            <MDBModalTitle>Conferma eliminazione</MDBModalTitle>
+                            <MDBBtn className="btn-close" color="none" onClick={toggleDeleteModal} />
+                        </MDBModalHeader>
+
+                        <MDBModalBody>
+                            Sei sicuro di voler eliminare questo elemento? <br />
+                            <small className="text-muted">Questa azione non è reversibile.</small>
+                        </MDBModalBody>
+
+                        <MDBModalFooter>
+                            <MDBBtn color="light" onClick={toggleDeleteModal} disabled={deleting}>
+                                Annulla
+                            </MDBBtn>
+
+                            <MDBBtn color="danger" onClick={handleConfirmDelete} disabled={deleting}>
+                                {deleting ? "Eliminando..." : "Sì, elimina"}
+                            </MDBBtn>
+                        </MDBModalFooter>
+                    </MDBModalContent>
+                </MDBModalDialog>
+            </MDBModal>
         </>
     );
 };

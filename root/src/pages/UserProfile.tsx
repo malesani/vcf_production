@@ -13,13 +13,13 @@ const UserProfile = () => {
     const userFields: FieldConfig<APIUserInfo>[] = [
         { name: "first_name",   label: "Nome",              required: true, grid: { md: 6 } },
         { name: "last_name",    label: "Cognome",           required: true, grid: { md: 6 } },
-        { name: "phone",        label: "Telefono",          type: "tel", grid: { md: 6 } }
+        { name: "phone",        label: "Telefono",          type: "number", grid: { md: 6 } }
     ];
 
     const companyFields: FieldConfig<APICompanyInfo>[] = [
         { name: "name",         label: "Ragione Sociale",   required: true, grid: { md: 6 } },
         { name: "address",      label: "Indirizzo",         required: false, grid: { md: 6 } },
-        { name: "phone",        label: "Telefono",          type: "tel", required: false, grid: { md: 6 } },
+        { name: "phone",        label: "Telefono",          type: "number", required: false, grid: { md: 6 } },
         { name: "fax",          label: "Fax",               type: "text", required: false, grid: { md: 6 } },
         { name: "email",        label: "Email",             type: "email", required: false, grid: { md: 8 } },
         { name: "vat",          label: "Partita IVA",       required: false, grid: { md: 4 } },

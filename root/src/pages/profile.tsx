@@ -62,14 +62,14 @@ const Profile: React.FC = () => {
     }, [isMobile]);
 
     return (
-        <MDBContainer fluid className="py-3 py-md-4 px-0">
+        <MDBContainer fluid className="py-3 py-md-2 px-0">
             {/* ==================== TOP HEADER (titolo + pill) ==================== */}
             <MDBRow className="g-3 mb-4">
                 <MDBCol xs="12">
                     <div>
                         <div className="d-flex flex-column gap-2">
                             <div className="d-flex align-items-center">
-                                <span className="fw-bold" style={{ fontSize: isMobile ? 20 : 28, color: "#111827" }}>
+                                <span className="fs-4 fw-bold text-dark">
                                     Il mio profilo
                                 </span>
                             </div>

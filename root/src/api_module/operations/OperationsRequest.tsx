@@ -63,6 +63,7 @@ export type ExecutedOperationSelect = {
     unitaryPrice_lastOp: number;
     unitaryPrice_now: number;
     value_now: number;
+    operation: string;
 };
 
 // Struttura suggerimenti NFO (report)

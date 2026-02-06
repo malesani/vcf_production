@@ -423,6 +423,67 @@ class portfolioObj extends portfolioObjBase
         }
     }
 
+    /** DELETE (soft)
+     * - set isDeleted = 1
+     */
+    public function delete_portfolio(?string $portfolio_uid = null): array
+    {
+        try {
+            $target_uid = $portfolio_uid ?? $this->portfolio_uid;
+            if (!$target_uid) {
+                return [
+                    'success' => false,
+                    'message' => 'portfolio.delete.400.missingUID',
+                    'error'   => 'Missing portfolio_uid'
+                ];
+            }
+
+            if ($target_uid !== $this->portfolio_uid) {
+                $this->set_portfolio($target_uid);
+            }
+
+            $sql = "
+            UPDATE `" . self::TABLE_INFO . "`
+            SET `isDeleted` = 1,
+                `updated_at` = :updated_at
+            WHERE `portfolio_uid` = :portfolio_uid
+              AND `company_uid`   = :company_uid
+              AND `user_uid`      = :user_uid
+              AND `isDeleted`     = 0
+            LIMIT 1
+        ";
+
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([
+                'updated_at'   => date('Y-m-d H:i:s'),
+                'portfolio_uid' => $target_uid,
+                'company_uid'  => $this->company_uid,
+                'user_uid'     => $this->user_data['user_uid'],
+            ]);
+
+            if ($stmt->rowCount() === 0) {
+                return [
+                    'success' => false,
+                    'message' => 'portfolio.delete.404.notFound',
+                    'error'   => 'Portfolio not found or already deleted'
+                ];
+            }
+
+            return [
+                'success' => true,
+                'message' => 'portfolio.delete.200.deleted',
+                'data'    => ['portfolio_uid' => $target_uid]
+            ];
+        } catch (Throwable $e) {
+            return [
+                'success' => false,
+                'message' => 'portfolio.delete.500.fatalError',
+                'error'   => $e->getMessage()
+            ];
+        }
+    }
+
+
     /** GETTERS */
     public function get_portfolioInfo(bool $refresh = false): array
     {

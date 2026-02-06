@@ -97,15 +97,14 @@ function serializeCreatePayload(
 // Serializzazione per UPDATE (parziale): inviamo solo i campi mutabili + PK
 function serializeUpdatePayload(p: Partial<PortfolioInfo> & { portfolio_uid: string }) {
   // mutabili: title, managed_uid, target, time_horizon_years, cash_position, automatic_savings, isDraft, isRanked
-  const payload: any = {
-    portfolio_uid: p.portfolio_uid,
-  };
+  const payload: any = { portfolio_uid: p.portfolio_uid,};
   if (p.title !== undefined) payload.title = p.title;
   if ((p as any).managed_uid !== undefined) payload.managed_uid = (p as any).managed_uid;
   if (p.target !== undefined) payload.target = p.target;
   if (p.time_horizon_years !== undefined) payload.time_horizon_years = p.time_horizon_years;
   if (p.cash_position !== undefined) payload.cash_position = p.cash_position;
   if (p.automatic_savings !== undefined) payload.automatic_savings = p.automatic_savings;
+  if (p.status !== undefined) payload.status = p.status;
   // Se gestisci bozze/rank nel frontend, aggiungi qui:
   if ((p as any).isDraft !== undefined) payload.isDraft = (p as any).isDraft ? 1 : 0;
   // if ((p as any).isRanked !== undefined) payload.isRanked = (p as any).isRanked ? 1 : 0;
@@ -249,8 +248,8 @@ export async function create_portfolio(
 export async function update_portfolio(
   portfolio: Partial<PortfolioInfo> & { portfolio_uid: string }
 ): Promise<DataResponse<PortfolioInfo>> {
+  console.log("portfolio param:", portfolio);
   const payload = serializeUpdatePayload(portfolio);
-
   const response = await requestFunction(
     '/portfolios/api/portfolio.php',
     'PUT',
@@ -261,5 +260,25 @@ export async function update_portfolio(
   if (response.success && response.data) {
     return { response, data: parsePortfolioFromBackend(response.data) };
   }
+  return { response };
+}
+
+// -----------------------------
+// UPDATE – opt: 'delete_portfolio' (soft delete)
+// -
+export async function delete_portfolio(
+  portfolio_uid: string
+): Promise<DataResponse<{ portfolio_uid: string }>> {
+  const response = await requestFunction(
+    "/portfolios/api/portfolio.php",
+    "PUT",
+    "delete_portfolio",
+    { portfolio_uid }
+  );
+
+  if (response.success && response.data) {
+    return { response, data: response.data as { portfolio_uid: string } };
+  }
+
   return { response };
 }

@@ -269,6 +269,30 @@ try {
                     ));
                     break;
 
+                case 'delete_portfolio':
+                    if (empty($requestData['portfolio_uid'])) {
+                        http_response_code(400);
+                        echo json_encode($reqResp->toArray(
+                            success: false,
+                            message: $trad->lang('portfolio.400.missingRequiredParameters'),
+                            error: 'Missing: ["portfolio_uid"]'
+                        ));
+                        break;
+                    }
+
+                    $obj = new portfolioObj($authManager, $permsManager, $requestData['portfolio_uid']);
+                    $res = $obj->delete_portfolio();
+
+                    http_response_code(($res['success'] ?? false) ? 200 : 400);
+                    echo json_encode($reqResp->toArray(
+                        success: $res['success'] ?? false,
+                        message: $trad->lang($res['message'] ?? 'portfolio.delete.200.deleted'),
+                        error: $res['error'] ?? null,
+                        data: $res['data'] ?? null
+                    ));
+                    break;
+
+
                 default:
                     $defaultOption = true;
                     break;

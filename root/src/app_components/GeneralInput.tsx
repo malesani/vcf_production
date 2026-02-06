@@ -247,6 +247,8 @@ export function GeneralInput<T extends Record<string, any>>(
 
       const currentValue = (formData as any)[key] ?? (isMulti ? [] : undefined);
 
+      const selectDefaultValue = field.options?.find(o => o.defaultSelected)?.value;
+
       const handleChange = (values: (string | number) | Array<string | number>) => {
         if (isMulti) {
           const selectedArray = Array.isArray(values) ? values : [values];
@@ -329,8 +331,12 @@ export function GeneralInput<T extends Record<string, any>>(
           const extraClass: string = field.properties?.className ?? "";
 
           useEffect(() => {
-            if (currentValue != switchOptions[0].value && currentValue != switchOptions[1].value) {
-              handleChange(switchOptions[0].value);
+            if (selectDefaultValue != undefined) {
+                handleChange(selectDefaultValue);
+            } else {
+              if (currentValue != switchOptions[0].value && currentValue != switchOptions[1].value) {
+                handleChange(switchOptions[0].value);
+              }
             }
           }, []);
 

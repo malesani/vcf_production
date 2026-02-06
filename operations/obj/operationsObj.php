@@ -364,7 +364,7 @@ class operationsObj extends operationsObjBase
 
                 $this->conn->commit();
                 $row = $this->load_operation_row($op_uid);
-                return ['success' => true, 'message' => 'operations.created', 'data' => $row];
+                return ['success' => true, 'message' => 'operazione creata', 'data' => $row];
             } else {    // 3) RAMO ASSET: buy | sell           
                 $sym      = $data['symbol'] ?? null;
                 $qtyRaw   = $data['unitQuantity'] ?? null;
@@ -489,7 +489,7 @@ class operationsObj extends operationsObjBase
 
                 $this->conn->commit();
                 $row = $this->load_operation_row($op_uid);
-                return ['success' => true, 'message' => 'operations.created', 'data' => $row];
+                return ['success' => true, 'message' => 'operazione creata', 'data' => $row];
             }
 
             // Fallback di sicurezza

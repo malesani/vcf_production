@@ -83,7 +83,7 @@ const PortfolioCard: React.FC<Props> = ({ portfolio, managedInfo, assetPrices })
 
   const renderAssetRows = () => {
     const total = totalAssetsNow || 0;
-
+    console.log(assets, "assets")
     return assets.map((a) => {
       const qty = toNumber(a.unitQuantity);
       if (qty <= 0) { return null; }

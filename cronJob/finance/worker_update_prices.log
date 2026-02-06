@@ -41,3 +41,15 @@
 [2025-11-12 16:36:44] - RUN updateCurrentPricesFromPriority (limit=200, chunk=40)
 [2025-11-12 16:36:46] - RESULT success=1 updated=4 msg=Aggiornati 4 simboli (tabella canonica).
 [2025-11-12 16:36:46] - END worker_update_prices
+[2026-02-02 09:46:15] - START worker_update_prices
+[2026-02-02 09:46:16] - Service client non configurato (procedo).
+[2026-02-02 09:46:16] - FX cache table OK
+[2026-02-02 09:46:16] - RUN updateCurrentPricesFromPriority (limit=200, chunk=40)
+[2026-02-02 09:46:18] - RESULT success=1 updated=7 msg=Aggiornati 7 simboli (tabella canonica).
+[2026-02-02 09:46:18] - END worker_update_prices
+[2026-02-02 09:46:47] - START worker_update_prices
+[2026-02-02 09:46:48] - Service client non configurato (procedo).
+[2026-02-02 09:46:48] - FX cache table OK
+[2026-02-02 09:46:48] - RUN updateCurrentPricesFromPriority (limit=200, chunk=40)
+[2026-02-02 09:46:49] - RESULT success=1 updated=7 msg=Aggiornati 7 simboli (tabella canonica).
+[2026-02-02 09:46:49] - END worker_update_prices

@@ -18,7 +18,7 @@ export const CustomCarouselMultiItems: React.FC = () => {
             const container = carouselRef.current;
             const card = container.querySelector("div > .mdb-card") as HTMLElement;
             const cardWidth = card ? card.offsetWidth : 300;
-            const gap = 24; // el mismo que usas en gap: "1.5rem"
+            const gap = 24; // lo stesso che usi in gap: "1.5rem"
             const scrollAmount = cardWidth + gap;
 
             let newScroll =
@@ -34,7 +34,7 @@ export const CustomCarouselMultiItems: React.FC = () => {
 
     return (
         <div style={{ position: "relative", padding: "0.5rem 0px" }}>
-            {/* Flecha izquierda */}
+            {/* Freccia sinistra */}
             <button
                 onClick={() => scroll("left")}
                 style={{
@@ -55,7 +55,7 @@ export const CustomCarouselMultiItems: React.FC = () => {
                 ‹
             </button>
 
-            {/* Contenedor horizontal */}
+            {/* Contenitore orizzontale */}
             <div
                 ref={carouselRef}
                 style={{
@@ -64,11 +64,11 @@ export const CustomCarouselMultiItems: React.FC = () => {
                     alignItems: "stretch",
                     gap: "1.5rem",
                     overflowX: "hidden",
-                    // padding eliminado, así el scroll llega a 0 exacto
+                    // padding eliminato, così lo scroll arriva a 0 esatto
                 }}
             >
                 {/* Card 1 */}
-                <div 
+                <div
                     style={{ flex: "0 0 300px" }}
                     className="my-3"
                 >
@@ -87,24 +87,24 @@ export const CustomCarouselMultiItems: React.FC = () => {
                             }}
                         >
                             <MDBCardBody className="d-flex flex-column justify-content-between h-100">
-                                <div className="d-flex justify-content-between align-items-start" style={{maxHeight:"67.97px", overflow:"hidden"}}>
+                                <div className="d-flex justify-content-between align-items-start" style={{ maxHeight: "67.97px", overflow: "hidden" }}>
                                     <div>
-                                        <MDBCardTitle className="h6 mb-1">Ingreso Estable</MDBCardTitle>
+                                        <MDBCardTitle className="h6 mb-1">Reddito stabile</MDBCardTitle>
                                         <MDBCardText className="small">
-                                            Portafolio diversificado en bonos y acciones de dividendos.
+                                            Portafoglio diversificato in obbligazioni e azioni da dividendo.
                                         </MDBCardText>
                                     </div>
                                     <MDBBadge color="dark" pill>
-                                        Bajo
+                                        Basso
                                     </MDBBadge>
                                 </div>
                                 <div className="text-center my-3">
                                     <h4 className="fw-bold">+1.85%</h4>
-                                    <p className="mb-0">Rendimiento</p>
+                                    <p className="mb-0">Rendimento</p>
                                 </div>
                                 <div className="text-end">
                                     <MDBBtn color="light" size="sm" className="fw-bold">
-                                        Ver Detalle
+                                        Vedi dettaglio
                                     </MDBBtn>
                                 </div>
                             </MDBCardBody>
@@ -113,7 +113,7 @@ export const CustomCarouselMultiItems: React.FC = () => {
                 </div>
 
                 {/* Card 2 */}
-                <div 
+                <div
                     style={{ flex: "0 0 300px" }}
                     className="my-3"
                 >
@@ -132,11 +132,11 @@ export const CustomCarouselMultiItems: React.FC = () => {
                             }}
                         >
                             <MDBCardBody className="d-flex flex-column justify-content-between h-100">
-                                <div className="d-flex justify-content-between align-items-start" style={{maxHeight:"67.97px", overflow:"hidden"}}>
+                                <div className="d-flex justify-content-between align-items-start" style={{ maxHeight: "67.97px", overflow: "hidden" }}>
                                     <div>
-                                        <MDBCardTitle className="h6 mb-1">Futuro Emergente</MDBCardTitle>
+                                        <MDBCardTitle className="h6 mb-1">Futuro emergente</MDBCardTitle>
                                         <MDBCardText className="small">
-                                            Inversión de alto riesgo en mercados emergentes.
+                                            Investimento ad alto rischio nei mercati emergenti.
                                         </MDBCardText>
                                     </div>
                                     <MDBBadge color="dark" pill>
@@ -145,11 +145,11 @@ export const CustomCarouselMultiItems: React.FC = () => {
                                 </div>
                                 <div className="text-center my-3">
                                     <h4 className="fw-bold">+15.4%</h4>
-                                    <p className="mb-0">Rendimiento</p>
+                                    <p className="mb-0">Rendimento</p>
                                 </div>
                                 <div className="text-end">
                                     <MDBBtn color="dark" size="sm" className="fw-bold">
-                                        Ver Detalle
+                                        Vedi dettaglio
                                     </MDBBtn>
                                 </div>
                             </MDBCardBody>
@@ -158,7 +158,7 @@ export const CustomCarouselMultiItems: React.FC = () => {
                 </div>
 
                 {/* Card 3 */}
-                <div 
+                <div
                     style={{ flex: "0 0 300px" }}
                     className="my-3"
                 >
@@ -177,11 +177,11 @@ export const CustomCarouselMultiItems: React.FC = () => {
                             }}
                         >
                             <MDBCardBody className="d-flex flex-column justify-content-between h-100">
-                                <div className="d-flex justify-content-between align-items-start" style={{maxHeight:"67.97px", overflow:"hidden"}}>
+                                <div className="d-flex justify-content-between align-items-start" style={{ maxHeight: "67.97px", overflow: "hidden" }}>
                                     <div>
-                                        <MDBCardTitle className="h6 mb-1">Planeta Verde</MDBCardTitle>
+                                        <MDBCardTitle className="h6 mb-1">Pianeta verde</MDBCardTitle>
                                         <MDBCardText className="small">
-                                            Empresas líderes en sostenibilidad y energías renovables.
+                                            Aziende leader nella sostenibilità e nelle energie rinnovabili.
                                         </MDBCardText>
                                     </div>
                                     <MDBBadge color="warning" pill>
@@ -190,19 +190,20 @@ export const CustomCarouselMultiItems: React.FC = () => {
                                 </div>
                                 <div className="text-center my-3">
                                     <h4 className="fw-bold">+4.50%</h4>
-                                    <p className="mb-0">Rendimiento</p>
+                                    <p className="mb-0">Rendimento</p>
                                 </div>
                                 <div className="text-end">
                                     <MDBBtn color="light" size="sm" className="fw-bold">
-                                        Ver Detalle
+                                        Vedi dettaglio
                                     </MDBBtn>
                                 </div>
                             </MDBCardBody>
                         </MDBCard>
                     </MDBAnimation>
                 </div>
+
                 {/* Card 1 */}
-                <div 
+                <div
                     style={{ flex: "0 0 300px" }}
                     className="m-3"
                 >
@@ -221,24 +222,24 @@ export const CustomCarouselMultiItems: React.FC = () => {
                             }}
                         >
                             <MDBCardBody className="d-flex flex-column justify-content-between h-100">
-                                <div className="d-flex justify-content-between align-items-start" style={{maxHeight:"67.97px", overflow:"hidden"}}>
+                                <div className="d-flex justify-content-between align-items-start" style={{ maxHeight: "67.97px", overflow: "hidden" }}>
                                     <div>
-                                        <MDBCardTitle className="h6 mb-1">Ingreso Estable</MDBCardTitle>
+                                        <MDBCardTitle className="h6 mb-1">Reddito stabile</MDBCardTitle>
                                         <MDBCardText className="small">
-                                            Portafolio diversificado en bonos y acciones de dividendos.
+                                            Portafoglio diversificato in obbligazioni e azioni da dividendo.
                                         </MDBCardText>
                                     </div>
                                     <MDBBadge color="dark" pill>
-                                        Bajo
+                                        Basso
                                     </MDBBadge>
                                 </div>
                                 <div className="text-center my-3">
                                     <h4 className="fw-bold">+1.85%</h4>
-                                    <p className="mb-0">Rendimiento</p>
+                                    <p className="mb-0">Rendimento</p>
                                 </div>
                                 <div className="text-end">
                                     <MDBBtn color="light" size="sm" className="fw-bold">
-                                        Ver Detalle
+                                        Vedi dettaglio
                                     </MDBBtn>
                                 </div>
                             </MDBCardBody>
@@ -247,7 +248,7 @@ export const CustomCarouselMultiItems: React.FC = () => {
                 </div>
 
                 {/* Card 2 */}
-                <div 
+                <div
                     style={{ flex: "0 0 300px" }}
                     className="m-3"
                 >
@@ -266,11 +267,11 @@ export const CustomCarouselMultiItems: React.FC = () => {
                             }}
                         >
                             <MDBCardBody className="d-flex flex-column justify-content-between h-100">
-                                <div className="d-flex justify-content-between align-items-start" style={{maxHeight:"67.97px", overflow:"hidden"}}>
+                                <div className="d-flex justify-content-between align-items-start" style={{ maxHeight: "67.97px", overflow: "hidden" }}>
                                     <div>
-                                        <MDBCardTitle className="h6 mb-1">Futuro Emergente</MDBCardTitle>
+                                        <MDBCardTitle className="h6 mb-1">Futuro emergente</MDBCardTitle>
                                         <MDBCardText className="small">
-                                            Inversión de alto riesgo en mercados emergentes.
+                                            Investimento ad alto rischio nei mercati emergenti.
                                         </MDBCardText>
                                     </div>
                                     <MDBBadge color="dark" pill>
@@ -279,11 +280,11 @@ export const CustomCarouselMultiItems: React.FC = () => {
                                 </div>
                                 <div className="text-center my-3">
                                     <h4 className="fw-bold">+15.4%</h4>
-                                    <p className="mb-0">Rendimiento</p>
+                                    <p className="mb-0">Rendimento</p>
                                 </div>
                                 <div className="text-end">
                                     <MDBBtn color="dark" size="sm" className="fw-bold">
-                                        Ver Detalle
+                                        Vedi dettaglio
                                     </MDBBtn>
                                 </div>
                             </MDBCardBody>
@@ -292,7 +293,7 @@ export const CustomCarouselMultiItems: React.FC = () => {
                 </div>
 
                 {/* Card 3 */}
-                <div 
+                <div
                     style={{ flex: "0 0 300px" }}
                     className="m-3"
                 >
@@ -311,11 +312,11 @@ export const CustomCarouselMultiItems: React.FC = () => {
                             }}
                         >
                             <MDBCardBody className="d-flex flex-column justify-content-between h-100">
-                                <div className="d-flex justify-content-between align-items-start" style={{maxHeight:"67.97px", overflow:"hidden"}}>
+                                <div className="d-flex justify-content-between align-items-start" style={{ maxHeight: "67.97px", overflow: "hidden" }}>
                                     <div>
-                                        <MDBCardTitle className="h6 mb-1">Planeta Verde</MDBCardTitle>
+                                        <MDBCardTitle className="h6 mb-1">Pianeta verde</MDBCardTitle>
                                         <MDBCardText className="small">
-                                            Empresas líderes en sostenibilidad y energías renovables.
+                                            Aziende leader nella sostenibilità e nelle energie rinnovabili.
                                         </MDBCardText>
                                     </div>
                                     <MDBBadge color="warning" pill>
@@ -324,11 +325,11 @@ export const CustomCarouselMultiItems: React.FC = () => {
                                 </div>
                                 <div className="text-center my-3">
                                     <h4 className="fw-bold">+4.50%</h4>
-                                    <p className="mb-0">Rendimiento</p>
+                                    <p className="mb-0">Rendimento</p>
                                 </div>
                                 <div className="text-end">
                                     <MDBBtn color="light" size="sm" className="fw-bold">
-                                        Ver Detalle
+                                        Vedi dettaglio
                                     </MDBBtn>
                                 </div>
                             </MDBCardBody>
@@ -337,7 +338,7 @@ export const CustomCarouselMultiItems: React.FC = () => {
                 </div>
             </div>
 
-            {/* Flecha derecha */}
+            {/* Freccia destra */}
             <button
                 onClick={() => scroll("right")}
                 style={{

@@ -21,22 +21,14 @@ import {
     MDBProgressBar
 } from 'mdb-react-ui-kit';
 
-import { PortfolioInfo, get_portfoliosListPaginated } from '../api_module/portfolio/PortfolioData';
+import { PortfolioInfo, get_portfoliosListPaginated, get_portfoliosList } from '../api_module/portfolio/PortfolioData';
 import { getMapping } from '../api_module_v1/MappingRequest';
 import { useNavigate } from 'react-router-dom';
 
 import General_Loading from "../app_components/General_Loading";
 import Pagination from "../app_components/TableData/components/Pagination";
 import { TableFilters } from "../app_components/TableData/interfaces";
-
-//data temporanea
-const data = [
-    { mese: "Maggio", Percentuale: -0.18 },
-    { mese: "Giugno", Percentuale: 1.57 },
-    { mese: "Luglio", Percentuale: 0.59 },
-    { mese: "Agosto", Percentuale: 0.46 },
-    { mese: "Settembre", Percentuale: 0.9 }
-];
+import { getUserInfo } from "../api_module_v1/UserRequest"; // Assicurati che il path sia corretto
 
 const PortfoliosDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -44,13 +36,15 @@ const PortfoliosDashboard: React.FC = () => {
     const [managedDataPortfolios, setManagedDataPortfolios] = useState<PortfolioInfo[]>([]);
     const [showDataPortfolios, setShowDataPortfolios] = useState<PortfolioInfo[]>([]);
     const [statusMap, setStatusMap] = useState<Record<string, string>>({});
-
+    const [totalWithCash, setTotalWithCash] = useState<number>(0);
 
     // ── Filtri tabella ─────────────────────────────────────────────────────────
     const [filters, setFilters] = useState<TableFilters<PortfolioInfo>>({
         page: 1,
         per_page: 5
     });
+
+    const [UserInfoUid, setUserInforUid] = useState<string>("")
 
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -89,7 +83,7 @@ const PortfoliosDashboard: React.FC = () => {
                 const response = await get_portfoliosListPaginated(filters);
                 if (!mounted) return;
 
-                if (response.success && data) {
+                if (response.success) {
                     setItemsNum(response.data!.meta.items_num);
                     setPagesNum(response.data!.meta.pages_num);
                 } else {
@@ -114,6 +108,59 @@ const PortfoliosDashboard: React.FC = () => {
         loadData();
     }, [filters]);
 
+    useEffect(() => {
+        const loadData = async () => {
+            let mounted = true;
+
+            try {
+                const response = await get_portfoliosList({ filter: UserInfoUid });
+                if (!mounted) return;
+
+                // Se la tua risposta ha un flag success, adattalo al tuo formato
+                const list = Array.isArray(response.data) ? response.data : [];
+
+                const sum = list.reduce((acc: number, p: any) => {
+                    const value = Number(p?.totals?.total_with_cash ?? 0);
+                    return acc + (Number.isFinite(value) ? value : 0);
+                }, 0);
+
+                setTotalWithCash(sum);
+
+                // opzionale: se ti serve anche mostrarli in lista
+                // setManagedDataPortfolios(list);
+                // setShowDataPortfolios(list);
+
+            } catch (e: any) {
+                if (mounted) setError(e?.message || "Errore di rete");
+            } finally {
+                if (mounted) setLoading(false);
+            }
+
+            return () => {
+                mounted = false;
+            };
+        };
+
+        // evita chiamata se non hai ancora uid
+        if (UserInfoUid) loadData();
+    }, [UserInfoUid]);
+
+    useEffect(() => {
+        // Caricamento iniziale lista backtests
+        getUserInfo()
+            .then((resp) => {
+                if (resp.response.success && resp.data) {
+                    console.log(resp.data)
+                    setUserInforUid(resp.data.user_uid)
+                }
+                console.log(resp)
+            })
+            .catch((erro) => {
+                console.log("Errore al ottenere i dati dell'utente")
+            })
+    }, []);
+
+
     // ── Handlers filtri ─────────────────────────────────────────────────────────
     const setCurrentPage = (page: number) => setFilters((p) => ({ ...p, page }));
     const setRowsForPage = (per_page: number) => setFilters((p) => ({ ...p, per_page, page: 1 }));
@@ -127,13 +174,13 @@ const PortfoliosDashboard: React.FC = () => {
     ).toFixed(2);
 
     return (
-        <MDBContainer fluid className="py-2">
+        <MDBContainer fluid className="py-3 py-md-2 px-0">
             {/* ======= HEADER TOP (responsive) ======= */}
             <MDBRow className="align-items-stretch g-3">
                 <MDBCol xs="12" lg="8">
-                    <div className="py-2">
+                    <div className="">
                         <div className="d-flex flex-row align-items-center">
-                            <span className="fs-4 fw-bold text-dark">
+                            <span className="fs-4 fw-bold text-dark mb-2">
                                 Riassunto Generale dei miei Portafogli
                             </span>
                         </div>
@@ -158,7 +205,7 @@ const PortfoliosDashboard: React.FC = () => {
                                     </span>
                                     <MDBIcon fas icon="sync-alt" color='white' />
                                 </MDBCardTitle>
-                                <h3 className="fw-bold mb-0 text-light">{totalValue} €</h3>
+                                <h3 className="fw-bold mb-0 text-light">{totalWithCash.toFixed(2)} €</h3>
                             </div>
                         </MDBCardBody>
                     </MDBCard>

@@ -1,10 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import {
   MDBBadge,
   MDBBtn,
   MDBBtnGroup,
-  MDBCard,
-  MDBCardBody,
   MDBCol,
   MDBDropdown,
   MDBDropdownItem,
@@ -47,6 +45,10 @@ type OperationsHistoryProps = {
   onReloadOperations?: (() => Promise<void>) | null;
 };
 
+export type ChildApi = {
+  refetch: () => Promise<void>;
+};
+
 // ────────────────────────────────────────────────────────────────────────────────
 // Helpers locali
 // ────────────────────────────────────────────────────────────────────────────────
@@ -72,7 +74,7 @@ const toDateTimeEnd = (d?: string) => (d ? `${d}T23:59:59` : undefined);
 // ────────────────────────────────────────────────────────────────────────────────
 // Component
 // ────────────────────────────────────────────────────────────────────────────────
-const OperationsHistory: React.FC<OperationsHistoryProps> = ({ portfolio_uid, onReloadPrices, onReloadPortfolio, onReloadOperations }) => {
+const OperationsHistory = forwardRef<ChildApi, OperationsHistoryProps>(({ portfolio_uid, onReloadPrices, onReloadPortfolio, onReloadOperations }, ref) => {
   const { FormAlert, showAlertError, showAlertSuccess } = useFormAlert();
 
   // ── Filtri tabella ──────────────────────────────────────────────────────────
@@ -126,32 +128,41 @@ const OperationsHistory: React.FC<OperationsHistoryProps> = ({ portfolio_uid, on
 
   const didInitRef = useRef(false);
 
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  async function refetch() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { response, data } = await fetchOperationsPaginated(filters);
+      if (response.success && data) {
+        setRows(data.rows);
+        setItemsNum(data.meta.items_num);
+        setPagesNum(data.meta.pages_num);
+      } else {
+        setError(response.message || "Errore nel recupero operazioni");
+      }
+      setLoading(false);
+    } catch (e: any) {
+      if (isMountedRef.current) setError(e?.message || "Errore di rete");
+    } finally {
+      console.log(isMountedRef,"isMountedRef")
+      if (isMountedRef.current) setLoading(false);
+    }
+
+    didInitRef.current = true;
+  }
+
   // Primo fetch
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { response, data } = await fetchOperationsPaginated(filters);
-        if (!mounted) return;
-        if (response.success && data) {
-          setRows(data.rows);
-          setItemsNum(data.meta.items_num);
-          setPagesNum(data.meta.pages_num);
-        } else {
-          setError(response.message || "Errore nel recupero operazioni");
-        }
-      } catch (e: any) {
-        if (mounted) setError(e?.message || "Errore di rete");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    didInitRef.current = true;
-    return () => {
-      mounted = false;
-    };
+    refetch()
   }, []);
 
   // Refetch automatico al cambiare dei filtri
@@ -246,6 +257,11 @@ const OperationsHistory: React.FC<OperationsHistoryProps> = ({ portfolio_uid, on
     [selected]
   );
 
+
+  //export functions 
+  useImperativeHandle(ref, () => ({
+    refetch,
+  }));
 
   // ── UI ──────────────────────────────────────────────────────────────────────
   return (
@@ -482,6 +498,6 @@ const OperationsHistory: React.FC<OperationsHistoryProps> = ({ portfolio_uid, on
       </MDBModal>
     </>
   );
-};
+});
 
 export default OperationsHistory;

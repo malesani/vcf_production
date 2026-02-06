@@ -45,6 +45,7 @@ const Skeleton: React.FC<SkeletonProps> = ({ children, def_appState, noNavbar, n
 
   // come nell'esempio MDB, dopo il primo render salvo contentRef.current
   useEffect(() => {
+    console.log(contentRef)
     if (contentRef.current) {
       setContainer(contentRef.current);
     }
@@ -53,6 +54,7 @@ const Skeleton: React.FC<SkeletonProps> = ({ children, def_appState, noNavbar, n
   if (authLoading) {
     return <General_Loading theme="appLoading" />;
   }
+
 
   return (
     <div style={{ minHeight: "100vh", width: "100%" }}>
@@ -87,6 +89,7 @@ const Skeleton: React.FC<SkeletonProps> = ({ children, def_appState, noNavbar, n
             onOpenChange={setSidebarOpen}
           />
         )}
+        
         <div
           // il ref vero e proprio
           ref={contentRef}

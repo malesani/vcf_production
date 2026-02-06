@@ -26,15 +26,17 @@ const fmtEUR = (n: number | string | null | undefined) =>
 
 //componente
 const OperationModel: React.FC<OperationsModelProps> = ({ portfolio_uid, editOpen, setEditOpen, selectedOp, onSuccess }) => {
+    console.log(selectedOp, "selectedOp");
     const operation_FieldConfig: FieldConfig<OperationItem>[] = [
         {
             name: 'operation',
             label: "operazione da esseguire",
             type: "selectbox",
-            options: [{ text: "Vendi", value: "sell" }, { text: "Compra", value: "buy" },],
+            options: [
+                { text: "Vendi", value: "sell", defaultSelected: (selectedOp?.operation === "sell") },
+                { text: "Compra", value: "buy", defaultSelected: (selectedOp?.operation === "buy") }],
             customElementKey: "dual_switch",
-            readOnly: (() => {return true}),
-            
+            readOnly: (() => { return true }),
 
         },
         {
@@ -54,6 +56,8 @@ const OperationModel: React.FC<OperationsModelProps> = ({ portfolio_uid, editOpe
             grid: { md: 12 },
         },
     ];
+
+
     return (
         <>
             <MDBModal open={editOpen} setOpen={setEditOpen} tabIndex={-1}>
@@ -72,7 +76,7 @@ const OperationModel: React.FC<OperationsModelProps> = ({ portfolio_uid, editOpe
                                             <div>
                                                 <strong>{selectedOp.symbol}</strong> —{' '}<br></br>
                                                 {selectedOp.unitaryPrice_lastOp === 0 ? "Qta da comprare:" : "Qta possedute:"} <strong>{selectedOp.unitQuantity}</strong> ·
-                                                
+
                                             </div>
                                             <div>
 

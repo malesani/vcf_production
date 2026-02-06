@@ -251,7 +251,7 @@ const TopBar: React.FC<TopBarProps> = ({
   );
   const companyName = currentCompany?.name ?? "Seleziona azienda";
 
-  // ✅ fetch quando il modale si apre
+  // ✅ fetch notifiche quando il modale si apre
   useEffect(() => {
     const run = async () => {
       if (!notifCenterOpen) return;
@@ -269,8 +269,23 @@ const TopBar: React.FC<TopBarProps> = ({
           return;
         }
 
-        setAlerts(res.data?.alerts ?? []);
-        setReports(res.data?.reports ?? []);
+        const raw = (res as any)?.data;
+
+        // Caso 1: formato { alerts: [], reports: [] }
+        if (Array.isArray(raw?.alerts) || Array.isArray(raw?.reports)) {
+          setAlerts(Array.isArray(raw?.alerts) ? raw.alerts : []);
+          setReports(Array.isArray(raw?.reports) ? raw.reports : []);
+          return;
+        }
+
+        // Caso 2: formato array flat { data: NfoInfo[] } o array diretto
+        const list: NfoInfo[] =
+          Array.isArray(raw) ? raw :
+            Array.isArray(raw?.data) ? raw.data :
+              [];
+
+        setAlerts(list.filter((x) => x.type === "alert"));
+        setReports(list.filter((x) => x.type === "report"));
       } catch (e: any) {
         setNfoError(e?.message ?? "Errore nel caricamento notifiche");
         setAlerts([]);
@@ -282,6 +297,7 @@ const TopBar: React.FC<TopBarProps> = ({
 
     run();
   }, [notifCenterOpen, managedUid]);
+
 
   // badge count (semplice)
   const notifCount = (alerts?.length ?? 0) + (reports?.length ?? 0);
@@ -340,6 +356,10 @@ const TopBar: React.FC<TopBarProps> = ({
 
     return arr;
   }, [alerts, reports, managedTitleByUid]); // getManagedLabel è pura (usa managedName), ok così
+
+  const hasVisibleNotifications = groups.some(
+    (g) => g.alerts.length > 0 || g.reports.length > 0
+  );
 
 
   return (
@@ -456,13 +476,13 @@ const TopBar: React.FC<TopBarProps> = ({
                 </MDBAlert>
               )}
 
-              {!loadingNfo && !nfoError && notifCount === 0 && (
+              {!loadingNfo && !nfoError && !hasVisibleNotifications && (
                 <MDBAlert color="info" className="mb-0">
                   Nessuna notifica disponibile.
                 </MDBAlert>
               )}
 
-              {!loadingNfo && !nfoError && notifCount > 0 && (
+              {!loadingNfo && !nfoError && hasVisibleNotifications && (
                 <>
                   {groups.map((g) => (
                     <div key={g.managed_uid} className="mb-4">

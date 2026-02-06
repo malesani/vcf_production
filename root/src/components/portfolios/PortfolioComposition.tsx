@@ -27,6 +27,7 @@ interface Props {
     onReloadPortfolio?: (() => Promise<void>) | null;
     onReloadOperations?: (() => Promise<void>) | null;
     onReloadProfit?: (() => Promise<void>) | null;
+    onReloadOperationsHistory?: (() => Promise<void>) | null;
 }
 
 
@@ -57,7 +58,7 @@ type ChartDatum = {
     color: string;
 };
 
-const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices, profit, onReloadProfit, onReloadPrices, onReloadPortfolio, onReloadOperations, pesature = [] }) => {
+const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices, profit, onReloadProfit, onReloadPrices, onReloadPortfolio, onReloadOperations, onReloadOperationsHistory, pesature = [] }) => {
 
     const { cash_position, assets = [] } = portfolio;
     const randomColor = () => `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`;
@@ -126,7 +127,7 @@ const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices
 
             console.log(current, "current")
             console.log(purchase, "purchase")
-            
+
             console.log(purchase > 0 ? (current / purchase - 1) * 100 : 0, "purchase")
 
             const diffPct = purchase > 0 ? (current / purchase - 1) * 100 : 0; // FIX: segno corretto
@@ -168,7 +169,7 @@ const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices
                                 color="danger"
                                 className={isMobile ? 'w-50 text-muted p-0 ms-1' : "text-muted p-0 ms-1"}
                                 onClick={() => {
-                                    setSelectedOp(a as ExecutedOperationSelect);
+                                    setSelectedOp({ ...a, operation: "sell" } as ExecutedOperationSelect);
                                     setEditOpen(true);
                                 }}
                                 title="vendi"
@@ -182,7 +183,7 @@ const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices
                                 className={isMobile ? 'w-50 text-muted p-0 ms-1' : "text-muted p-0 ms-1"}
 
                                 onClick={() => {
-                                    setSelectedOp(a as ExecutedOperationSelect);
+                                    setSelectedOp({ ...a, operation: "buy" } as ExecutedOperationSelect);
                                     setEditOpen(true);
                                 }}
                                 title="compra"
@@ -300,68 +301,77 @@ const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices
                             </MDBBadge>
                         </div>
                     </div>
-                    {assets.length > 0 ? renderAssetRows() : <div className="w-100 d-flex justify-content-center align-items-center gap-2 small text-nowrap border-bottom"><p className="s-muted small my-2">Nessun asset presente.</p></div>}
+                    {assets.length > 0 ? renderAssetRows() : <div className="w-100 d-flex justify-content-center align-items-center gap-2 small text-nowrap "><p className="s-muted small my-2">Nessun asset acquistato.</p></div>}
                     <div className="d-flex flex-column justify-content-between">
                         <div className="">
                             <MDBListGroup className="mx-1" light >
-                                {pesature
-                                    .filter(a => a.unitQuantity_now === 0)
-                                    .map(a => {
+                                {realOps.length != 0 ? (
+                                    pesature
+                                        .filter(a => a.unitQuantity_now === 0)
+                                        .map(a => {
+                                            // QUI ottieni l'oggetto corrispondente di realOps ⬇⬇⬇
+                                            const realOp = realOps.find(op => op.symbol === a.symbol);
+                                            if (!realOp) return null; // se non corrisponde nulla, non renderizzare
+                                            console.log(realOp, "realOp")
 
-                                        // QUI ottieni l'oggetto corrispondente di realOps ⬇⬇⬇
-                                        const realOp = realOps.find(op => op.symbol === a.symbol);
-
-                                        if (!realOp) return null; // se non corrisponde nulla, non renderizzare
-
-                                        return (
-                                            <MDBListGroupItem className="w-100 d-flex justify-content-between align-items-center gap-2 small text-nowrap flex-wrap flex-md-nowrap p-3 mb-3" style={{ borderRadius: "15px", background: "rgb(239,246,255)", border: "rgba(190, 219, 255, 1) solid 1px" }} key={a.symbol}>
-                                                <div className="d-flex align-items-center w-50 ">
-                                                    {!isMobile &&
-                                                        <div className='me-3 d-flex align-center justify-content-center w-25' style={{ borderRadius: "15px", background: "green", color: "white", padding: "7px 16px" }}>
-                                                            <span className="fw-bold">{a.symbol}</span>
+                                            return (
+                                                <MDBListGroupItem className="w-100 d-flex justify-content-between align-items-center gap-2 small text-nowrap flex-wrap flex-md-nowrap p-3 mb-3" style={{ borderRadius: "15px", background: "rgb(239,246,255)", border: "rgba(190, 219, 255, 1) solid 1px" }} key={a.symbol}>
+                                                    <div className="d-flex align-items-center w-50 ">
+                                                        {!isMobile &&
+                                                            <div className='me-3 d-flex align-center justify-content-center w-25' style={{ borderRadius: "15px", background: "green", color: "white", padding: "7px 16px" }}>
+                                                                <span className="fw-bold">{a.symbol}</span>
+                                                            </div>
+                                                        }
+                                                        <div className=' gap-3'>
+                                                            <div className="text-uppercase fw-bold">
+                                                                {a.symbol}
+                                                            </div>
+                                                            <span className="fw-bold me-3">{a.unitQuantity_now} asset</span>
+                                                            <span className="fw-bold text-muted">{realOp.unitaryPrice} €/un</span>
                                                         </div>
-                                                    }
-                                                    <div className=' gap-3'>
-                                                        <div className="text-uppercase fw-bold">
-                                                            {a.symbol}
-                                                        </div>
-                                                        <span className="fw-bold me-3">{a.unitQuantity_now} asset</span>
-                                                        <span className="fw-bold text-muted">{realOp.unitaryPrice} €/un</span>
                                                     </div>
-                                                </div>
 
-                                                <div className='d-flex align-items-center gap-2'>
-                                                    <span className="fw-bold text-info">Target:</span>
-                                                    <span className="fw-bold text-info">{a.unitQuantity_suggested}</span>
-                                                </div>
-                                                <div
-                                                    className={isMobile ? 'w-100 d-flex justify-content-end' : "d-flex justify-content-end"}>
-                                                    <MDBBtn
-                                                        size="sm"
-                                                        color="success"
-                                                        className={isMobile ? 'w-100 text-muted p-0 ms-1' : "text-muted p-0 ms-1"}
-                                                        onClick={() => {
-                                                            const el = {
-                                                                portfolio_uid: realOp.portfolio_uid,
-                                                                symbol: realOp.symbol,
-                                                                unitQuantity: realOp.unitQuantity,
-                                                                unitaryPrice_lastOp: 0,
-                                                                unitaryPrice_now: realOp.unitaryPrice,
-                                                                value_now: realOp.unitaryPrice,
-                                                            }
-                                                            setSelectedOp(el as ExecutedOperationSelect);
-                                                            setEditOpen(true);
-                                                        }}
-                                                        title="Modifica"
-                                                    >
-                                                        <b className="text-white p-2">Buy</b>
-                                                    </MDBBtn>
-                                                </div>
+                                                    <div className='d-flex align-items-center gap-2'>
+                                                        <span className="fw-bold text-info">Target:</span>
+                                                        <span className="fw-bold text-info">{a.unitQuantity_suggested}</span>
+                                                    </div>
+                                                    <div
+                                                        className={isMobile ? 'w-100 d-flex justify-content-end' : "d-flex justify-content-end"}>
+                                                        <MDBBtn
+                                                            size="sm"
+                                                            color="success"
+                                                            className={isMobile ? 'w-100 text-muted p-0 ms-1' : "text-muted p-0 ms-1"}
+                                                            onClick={() => {
+                                                                const el = {
+                                                                    portfolio_uid: realOp.portfolio_uid,
+                                                                    symbol: realOp.symbol,
+                                                                    unitQuantity: realOp.unitQuantity,
+                                                                    unitaryPrice_lastOp: 0,
+                                                                    unitaryPrice_now: realOp.unitaryPrice,
+                                                                    value_now: realOp.unitaryPrice,
+                                                                    operation: realOp.operation
+                                                                }
+                                                                setSelectedOp(el as ExecutedOperationSelect);
+                                                                setEditOpen(true);
+                                                            }}
+                                                            title="Modifica"
+                                                        >
+                                                            <b className="text-white p-2">Buy</b>
+                                                        </MDBBtn>
+                                                    </div>
 
-                                            </MDBListGroupItem>
-                                        );
-                                    })
-                                }
+                                                </MDBListGroupItem>
+                                            );
+                                        })
+                                ) : (
+                                    <>
+                                        {portfolio.type === "managed" &&
+                                            <MDBAlert open className='w-100' color='warning'>
+                                                Aumenta la tua liquidita per eseguire operazioni future
+                                            </MDBAlert>
+                                        }
+                                    </>
+                                )}
                             </MDBListGroup>
 
                         </div>
@@ -378,6 +388,7 @@ const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices
                     if (onReloadPrices) onReloadPrices();
                     if (onReloadOperations) onReloadOperations();
                     if (onReloadProfit) onReloadProfit();
+                    if (onReloadOperationsHistory) onReloadOperationsHistory();
                 }}
 
             />
@@ -393,6 +404,8 @@ const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices
                     if (onReloadPrices) onReloadPrices();
                     if (onReloadOperations) onReloadOperations();
                     if (onReloadProfit) onReloadProfit();
+                    if (onReloadOperationsHistory) onReloadOperationsHistory();
+
                 }}
             />
 
@@ -416,8 +429,8 @@ const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices
                                     // TODO: replace with real API call to change monthly import
                                     // For now return a mocked resolved promise matching the expected Promise return type
                                     return Promise.resolve({
-                                        response: "ok",
-                                        data: payload
+                                        response: "success",
+                                        data: payload,
                                     } as any);
                                 }}
                                 createBtnProps={{
@@ -429,6 +442,7 @@ const PortfolioComposition: React.FC<Props> = ({ realOps, portfolio, assetPrices
                                     setEditMonthPayment(false);
                                     //da fare il refresh
                                 }}
+
                             />
                         </MDBModalBody>
                     </MDBModalContent>

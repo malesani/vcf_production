@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from "react-router-dom";
 import {
     MDBBtn,
     MDBRow,
@@ -21,11 +22,28 @@ import { getUserInfo, APIUserInfo } from "../api_module_v1/UserRequest"
 import { useIsMobile } from "../app_components/ResponsiveModule";
 
 const NewPortfolio: React.FC = () => {
+    const navigate = useNavigate();
     const [loadingMode, setLoadingMode] = useState<boolean>(false);
     const isMobile = useIsMobile(992);
     const [stocksInfoOptions, setStocksInfoOptions] = useState<SelectData[] | null>(null);
     const [managedPortfoliosOptions, setManagedPortfolios] = useState<SelectData[] | null>(null);
     const [UserInfoUid, setUserInforUid] = useState<string>("")
+
+    const createPortfolioAndGo = async (
+        payload: PortfolioInfo,
+        params?: { user_uid: string }
+    ) => {
+        const resp = await create_portfolio({
+            ...payload,
+            ...(params ?? {}),
+        });
+
+        if (resp?.response?.success && resp?.data?.portfolio_uid) {
+            navigate(`/portfolio/${resp.data.portfolio_uid}`, { replace: true });
+        }
+
+        return resp;
+    };
 
     // FETCH DATA
     useEffect(() => {
@@ -230,7 +248,7 @@ const NewPortfolio: React.FC = () => {
                             }}
                             params={{ user_uid: UserInfoUid }}
                             fields={Portfolio_FormFields}
-                            createData={create_portfolio}
+                            createData={createPortfolioAndGo}
                             className='p-4 lh-lg'
                         />
 

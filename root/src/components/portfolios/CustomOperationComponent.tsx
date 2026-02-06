@@ -5,7 +5,7 @@ import { FieldConfig, SelectData, GeneralForm } from '../../app_components/Gener
 
 
 import { PortfolioInfo, } from '../../api_module/portfolio/constants';
-import { OperationItem, createOperation,  } from "../../api_module/operations/OperationsRequest";
+import { OperationItem, createOperation, } from "../../api_module/operations/OperationsRequest";
 import { getStocksInfo } from '../../api_module_v1/FinancialDataRequest';
 
 
@@ -14,15 +14,25 @@ import General_Loading from "../../app_components/General_Loading";
 
 interface CustomOperationProps {
     portfolioInfo: PortfolioInfo
+    onReloadPrices?: (() => Promise<void>) | null;
+    onReloadPortfolio?: (() => Promise<void>) | null;
+    onReloadOperations?: (() => Promise<void>) | null;
+    onReloadProfit?: (() => Promise<void>) | null;
+    onReloadOperationsHistory?: (() => Promise<void>) | null;
+
+
 }
 
-export const CustomOperationComponent: React.FC<CustomOperationProps> = ({ portfolioInfo }) => {
+export const CustomOperationComponent: React.FC<CustomOperationProps> = ({ portfolioInfo, onReloadPrices, onReloadPortfolio, onReloadOperations, onReloadProfit, onReloadOperationsHistory }) => {
+
+    const [reloadKey, setReloadKey] = useState(0);
+
+    const reloadComponent = () => setReloadKey(k => k + 1);
 
     const [loadingMode, setLoadingMode] = useState<boolean>(false);
 
     const [stocksInfoOptions, setStocksInfoOptions] = useState<SelectData[] | null>(null);
     const [stocksInfoOptionsPortfolio, setStocksInfoOptionsPortfolio] = useState<SelectData[] | null>(null);
-
     const operation_FieldConfig: FieldConfig<OperationItem>[] = [
         {
             name: "symbol", label: "Seleziona Asset", required: true, grid: { md: 6 },
@@ -35,10 +45,6 @@ export const CustomOperationComponent: React.FC<CustomOperationProps> = ({ portf
             name: 'unitQuantity',
             label: 'Quantita',
             type: 'number',
-            properties: { 
-                defaultValue: 1,
-                minValue: 1
-            },
             required: true,
             grid: { md: 3 },
         },
@@ -48,6 +54,7 @@ export const CustomOperationComponent: React.FC<CustomOperationProps> = ({ portf
             type: 'number',
             required: true,
             grid: { md: 3 },
+
         },
 
     ];
@@ -81,24 +88,30 @@ export const CustomOperationComponent: React.FC<CustomOperationProps> = ({ portf
                         </MDBCardTitle>
                     </div>
                 </MDBCardHeader>
-                <MDBCardBody className="pt-2">
-                    <GeneralForm<OperationItem, {portfolio_uid: string; operation: "buy"}>
+                <MDBCardBody key={reloadKey} className="pt-2">
+                    <GeneralForm<OperationItem, { portfolio_uid: string; operation: "buy" }>
                         mode="create"
                         fields={operation_FieldConfig}
-                        params={{portfolio_uid: portfolioInfo.portfolio_uid, operation: "buy"}}
+                        params={{ portfolio_uid: portfolioInfo.portfolio_uid, operation: "buy" }}
                         createData={createOperation}
-                        createBtnProps={{ 
+                        createBtnProps={{
                             icon: 'chart-line',
-                            label: 'Conferma Acquisto', 
+                            label: 'Conferma Acquisto',
                             labelSaving: 'Acquisto ...',
-                            className: "bg-primary border-primary bg-gradient shadow-0" }}
-                        onSuccess={async () => {
-                            return { response: { success: true, message: 'OK' }};
+                            className: "bg-primary border-primary bg-gradient shadow-0"
                         }}
+                        onSuccess={() => {
+                            reloadComponent()
+                            if (onReloadPortfolio) onReloadPortfolio();
+                            if (onReloadPrices) onReloadPrices();
+                            if (onReloadOperations) onReloadOperations();
+                            if (onReloadProfit) onReloadProfit();
+                            if (onReloadOperationsHistory) onReloadOperationsHistory();
+                        }}
+
+
                     />
                 </MDBCardBody>
-
-
             </MDBCard>
         </>
     )

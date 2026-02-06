@@ -131,7 +131,7 @@ const SetupNfo: React.FC = () => {
                 largeDataSearch: true
             },
         },
-        { name: "percentage", label: "Nuova percentuale", required: false, grid: { md: 4 }, type: "number" },
+        { name: "percentage", label: "Nuova percentuale", required: false, grid: { md: 4 }, type: "number", properties: { minValue: 1 }},
     ];
 
     const monthNumOptions = [

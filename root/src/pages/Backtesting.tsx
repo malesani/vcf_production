@@ -229,7 +229,7 @@ const Backtesting: React.FC = () => {
                                     ) : (
                                         <>
                                             {/* Card "Nuovo Portafoglio" */}
-                                            <MDBCol xs="12" md="6" lg="4">
+                                            <MDBCol xs="12" md="6" lg="6" xl="4">
                                                 <MDBCard className="shadow-sm rounded-4 h-100" style={{ minHeight: isMobile ? 160 : 208 }}>
                                                     <MDBCardBody className="d-flex flex-column align-items-center justify-content-center text-center">
                                                         <MDBBtn
@@ -259,7 +259,7 @@ const Backtesting: React.FC = () => {
 
                                             {/* Lista backtests */}
                                             {backtests.map((bt) => (
-                                                <MDBCol xs="12" md="6" lg="4" key={bt.backtesting_uid}>
+                                                <MDBCol xs="12" md="6" lg="6" xl="4" key={bt.backtesting_uid}>
                                                     <MDBCard className="shadow-sm rounded-4 h-100">
                                                         <MDBCardBody
                                                             onClick={() => navigate(`/backtesting/backtestingItem/${bt.backtesting_uid}`)}
@@ -346,7 +346,7 @@ const Backtesting: React.FC = () => {
                             <MDBCardBody className={ui.bodyPadClass}>
                                 <MDBRow className="g-3">
                                     {/* ✅ En mobile: 1 col (xs=12). En desktop: 4 col (lg=3) */}
-                                    <MDBCol xs="12" md="6" lg="3">
+                                    <MDBCol xs="12" md="6" lg="6" xl="3">
                                         <PortfolioCard
                                             ui={ui}
                                             isMobile={isMobile}
@@ -362,7 +362,7 @@ const Backtesting: React.FC = () => {
                                         />
                                     </MDBCol>
 
-                                    <MDBCol xs="12" md="6" lg="3">
+                                    <MDBCol xs="12" md="6" lg="6" xl="3">
                                         <PortfolioCard
                                             ui={ui}
                                             isMobile={isMobile}
@@ -378,7 +378,7 @@ const Backtesting: React.FC = () => {
                                         />
                                     </MDBCol>
 
-                                    <MDBCol xs="12" md="6" lg="3">
+                                    <MDBCol xs="12" md="6" lg="6" xl="3">
                                         <PortfolioCard
                                             ui={ui}
                                             isMobile={isMobile}
@@ -394,7 +394,7 @@ const Backtesting: React.FC = () => {
                                         />
                                     </MDBCol>
 
-                                    <MDBCol xs="12" md="6" lg="3">
+                                    <MDBCol xs="12" md="6" lg="6" xl="3">
                                         <PortfolioCard
                                             ui={ui}
                                             isMobile={isMobile}

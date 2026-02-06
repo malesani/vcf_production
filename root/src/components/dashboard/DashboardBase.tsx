@@ -59,26 +59,39 @@ const parseNum = (v: string) => {
     return Number.isFinite(n) ? n : 0;
 };
 
-const yearsToReachTarget = (
+const capitalAtTargetYear = (
     P0: number,
     m: number,
-    target: number,
-    annual: number,
+    target?: number,     // ✅ opzionale
+    annual?: number,     // ✅ opzionale
     maxYears = 40
 ) => {
-    if (target <= 0) return 1;
-    if (P0 >= target) return 1;
+    const safeP0 = Number.isFinite(P0) ? P0 : 0;
+    const safeM = Number.isFinite(m) ? m : 0;
+    const r = typeof annual === "number" && Number.isFinite(annual) ? annual : 0;
 
-    const rM = Math.pow(1 + annual, 1 / 12) - 1;
-    let balance = P0;
+    const hasTarget = typeof target === "number" && Number.isFinite(target) && target > 0;
 
-    for (let month = 1; month <= maxYears * 12; month++) {
-        balance += m;
-        balance *= 1 + rM;
+    // se target presente e già raggiunto
+    if (hasTarget && safeP0 >= (target as number)) return { years: 1, capital: Math.round(safeP0) };
 
-        if (balance >= target) return Math.ceil(month / 12);
+    let balance = safeP0;
+
+    for (let i = 0; i < maxYears; i++) {
+        // anno i: versamenti (12 mesi)
+        balance += safeM * 12;
+
+        // interesse dal 2° anno in poi
+        if (i >= 1) balance *= 1 + r;
+
+        // se target presente, stop appena raggiunto
+        if (hasTarget && balance >= (target as number)) {
+            return { years: i + 1, capital: Math.round(balance) };
+        }
     }
-    return maxYears;
+
+    // ✅ se target NON presente: ritorna comunque la proiezione a maxYears
+    return { years: maxYears, capital: Math.round(balance) };
 };
 
 const buildLineSeries = (P0: number, m: number, Y: number): LineSerie[] => {
@@ -90,22 +103,16 @@ const buildLineSeries = (P0: number, m: number, Y: number): LineSerie[] => {
         { id: "Strategie MIPAI", annual: 0.1, color: "#007A55" },
     ];
 
-    const toMonthlyRate = (annual: number) => Math.pow(1 + annual, 1 / 12) - 1;
-
     return scenarios.map(({ id, annual, color }) => {
-        const rM = toMonthlyRate(annual);
-
         let balance = P0;
         const data: LinePoint[] = [];
 
         for (let i = 0; i < Y; i++) {
-            for (let month = 0; month < 12; month++) {
-                balance += m;
-                balance *= 1 + rM;
-            }
+            balance += m * 12;
+            if (i >= 1) balance *= 1 + annual;
 
             data.push({
-                x: String(startYear + i),
+                x: String(startYear + i), // ✅ antes: startYear + i + 1
                 y: Math.round(balance),
             });
         }
@@ -113,7 +120,6 @@ const buildLineSeries = (P0: number, m: number, Y: number): LineSerie[] => {
         return { id, color, data };
     });
 };
-
 const buildBacktestSeries = (
     P0: number,
     m: number,
@@ -214,7 +220,8 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
     }, [activePerfil]);
 
     const [invest, setInvest] = useState<number>(0);
-    const [changeDetect, setChangeDetect] = useState<boolean>(false);
+    const [changeDetect1, setChangeDetect1] = useState<boolean>(false);
+    const [changeDetect2, setChangeDetect2] = useState<boolean>(false);
 
     const [presetData, setPresetData] = useState<PresetData | null>(null);
 
@@ -359,16 +366,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
     const [lineData, setLineData] = useState<LineSerie[]>([]);
     const [pipeData, setPipeData] = useState<PieData[]>([]);
 
-    const [options, setOptions] = useState({
-        option1: false,
-        option2: false,
-        option3: false,
-    });
 
-    const handleChange = (e: any) => {
-        const { name, checked } = e.target;
-        setOptions({ ...options, [name]: checked });
-    };
 
     const fmtEUR = (n: number) =>
         new Intl.NumberFormat("it-IT", {
@@ -386,20 +384,20 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
             { label: "Anni trascorsi", value: String(yearsN) },
             { label: "Capitale iniziale", value: fmtEUR(parseNum(capitalBacktesting)) },
             { label: "Somma versamenti", value: fmtEUR(totalContrib) },
-            { label: "Capitale stimato oggi", value: fmtEUR(finalCapital) },
+            { label: "Capitale investito", value: fmtEUR(finalCapital) },
         ];
     }, [pastYears, monthlyBacktesting, capitalBacktesting, backtestData]);
 
     useEffect(() => {
         if (!autoYears) return;
-
+        console.log(autoYears)
         const P0 = parseNum(capital);
         const m = parseNum(monthly);
         const target = parseNum(objCapital);
         const annual = 0.02;
-        const neededYears = yearsToReachTarget(P0, m, target, annual, 40);
+        const neededYears = capitalAtTargetYear(P0, m, target, annual, 40).years;
         setYears(String(neededYears));
-    }, [autoYears, capital, monthly, objCapital]);
+    }, [autoYears, capital, monthly, objCapital, years]);
 
     useEffect(() => {
         const P0 = parseNum(capital);
@@ -516,6 +514,9 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                 setObjCapital(preset.preset_json.answers.step_3.target_capital);
                 setAutoYears(true);
                 setInvest(preset.preset_json.answers.step_2.invested_capital || 0);
+
+                setYears(preset.preset_json.answers.step_3.target_years)
+                setPastYears(preset.preset_json.answers.step_3.target_years)
             })
             .catch((err) => {
                 console.log("[PRESETS] fetch error:", err);
@@ -550,7 +551,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                 throw new Error(response.message ?? "presets.error");
             }
 
-            setChangeDetect(false);
+            setChangeDetect1(false);
             openSaveModal("success", "✅ Salvato correttamente!");
         } catch (e: any) {
             console.log("[PRESETS] patch error:", e);
@@ -587,7 +588,8 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                 throw new Error(response.message ?? "presets.error");
             }
 
-            setChangeDetect(false);
+       
+            setChangeDetect2(false);
             openSaveModal("success", "✅ Salvato correttamente!");
         } catch (e: any) {
             console.log("[PRESETS] patch error:", e);
@@ -667,16 +669,16 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                 </MDBContainer>
             )}
 
-            <MDBContainer fluid className="py-2">
+            <MDBContainer fluid className="py-3 py-md-2 px-0">
                 <MDBRow className="align-items-stretch g-3">
-                    <div className="py-2">
-                        <div className="d-flex flex-row align-items-center">
+                    <div className="">
+                        <div className="d-flex flex-row align-items-center mb-2">
                             <span className="fs-4 fw-bold text-dark">
                                 Check-up Finanziario
                             </span>
                         </div>
                         <div className="d-flex">
-                            <span className="text-muted fs-6">
+                            <span className="text-muted fs-6 mb-2">
                                 Panoramica dei tuoi investimenti e portafogli
                             </span>
                         </div>
@@ -774,7 +776,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                             margin={
                                                 isMobile
                                                     ? { top: 10, right: 10, bottom: 60, left: 10 }
-                                                    : { top: 5, right: 10, bottom: 70, left: 10 }
+                                                    : { top: 15, right: 10, bottom: 60, left: 10 }
                                             }
                                             innerRadius={0.8}
                                             activeOuterRadiusOffset={8}
@@ -920,7 +922,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
 
                             <MDBCardBody className={ui.bodyPadClass}>
                                 <MDBRow className="g-3 mb-4">
-                                    <MDBCol xs="12" md="12" lg="4" className="d-flex">
+                                    <MDBCol xs="12" md="12" lg="6" xl="4" className="d-flex">
                                         <MDBCard className="square border border-danger border-2 bg-opacity-25 bg-danger w-100">
                                             <MDBCardBody className="">
                                                 <MDBTypography
@@ -945,7 +947,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                     style={{ fontSize: isMobile ? "13px" : "0.75rem" }}
                                                     className="fw-bold text-danger mb-sm-3 mb-1">
                                                     <MDBIcon far icon="clock" className="me-2" />
-                                                    19 anni
+                                                    {capitalAtTargetYear(parseNum(capital), parseNum(monthly), target, 0.02, Number(years)).years} anni
                                                 </MDBTypography>
 
                                                 <small
@@ -956,13 +958,13 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                             </MDBCardBody>
 
                                             <MDBCardFooter style={{ borderTop: "white solid 1px" }}>
-                                                <MDBTypography
-                                                    style={{ fontSize: isMobile ? "13px" : "" }}
-                                                    className="m-0">Capitale stimato: 100.141 €</MDBTypography>
+                                                <MDBTypography style={{ fontSize: isMobile ? "13px" : "" }} className="m-0">
+                                                    Capitale stimato: {capitalAtTargetYear(parseNum(capital), parseNum(monthly), target, 0.02, Number(years)).capital} €
+                                                </MDBTypography>
                                             </MDBCardFooter>
                                         </MDBCard>
                                     </MDBCol>
-                                    <MDBCol xs="12" md="12" lg="4" className="d-flex">
+                                    <MDBCol xs="12" md="12" lg="6" xl="4" className="d-flex">
                                         <MDBCard className="square border border-warning border-2 bg-opacity-25 bg-warning w-100">
                                             <MDBCardBody className="">
                                                 <MDBTypography
@@ -988,7 +990,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                     className="fw-bold text-warning mb-sm-3 mb-1"
                                                 >
                                                     <MDBIcon far icon="clock" className="me-2" />
-                                                    14 anni
+                                                    {capitalAtTargetYear(parseNum(capital), parseNum(monthly), target, 0.05, Number(years)).years} anni
                                                 </MDBTypography>
 
                                                 <small style={ui.textSmall}>
@@ -998,13 +1000,13 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
 
                                             <MDBCardFooter style={{ borderTop: "white solid 1px" }}>
                                                 <MDBTypography style={ui.hCardTitle} className="m-0">
-                                                    Capitale stimato: 100.141 €
+                                                    Capitale stimato: {capitalAtTargetYear(parseNum(capital), parseNum(monthly), target, 0.05, Number(years)).capital} €
                                                 </MDBTypography>
                                             </MDBCardFooter>
                                         </MDBCard>
                                     </MDBCol>
 
-                                    <MDBCol xs="12" md="12" lg="4" className="d-flex">
+                                    <MDBCol xs="12" md="12" lg="12" xl="4" className="d-flex">
                                         <MDBCard className="square border border-success border-2 bg-opacity-25 bg-success w-100">
                                             <MDBCardBody className="">
                                                 <MDBTypography
@@ -1030,7 +1032,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                     className="fw-bold text-success mb-sm-3 mb-1"
                                                 >
                                                     <MDBIcon far icon="clock" className="me-2" />
-                                                    11 anni
+                                                    {capitalAtTargetYear(parseNum(capital), parseNum(monthly), target, 0.10, Number(years)).years} anni
                                                 </MDBTypography>
 
                                                 <small style={ui.textSmall}>
@@ -1040,7 +1042,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
 
                                             <MDBCardFooter style={{ borderTop: "white solid 1px" }}>
                                                 <MDBTypography style={ui.hCardTitle} className="m-0">
-                                                    Capitale stimato: 100.141 €
+                                                    Capitale stimato: {capitalAtTargetYear(parseNum(capital), parseNum(monthly), target, 0.10, Number(years)).capital} €
                                                 </MDBTypography>
                                             </MDBCardFooter>
                                         </MDBCard>
@@ -1110,7 +1112,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                     </small>
                                 </div>
 
-                                {changeDetect && (
+                                {changeDetect1 && (
                                     <MDBBtn
                                         onClick={() => savePresetsFuture()}
                                         className="me-1"
@@ -1119,7 +1121,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                         style={{ fontSize: isMobile ? 12 : 14, padding: isMobile ? "8px 10px" : "" }}
                                     >
                                         <MDBIcon className="me-2" far icon="save" />
-                                        {saving ? "salvando..." : "salva"}
+                                        {!isMobile && (saving ? "salvando..." : "salva")}
                                     </MDBBtn>
                                 )}
                             </div>
@@ -1141,7 +1143,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                             value={capital}
                                                             onChange={(e) => {
                                                                 setCapital(e.target.value);
-                                                                setChangeDetect(true);
+                                                                setChangeDetect1(true);
                                                             }}
                                                             style={ui.input}
                                                         />
@@ -1154,7 +1156,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                             value={monthly}
                                                             onChange={(e) => {
                                                                 setMonthly(e.target.value);
-                                                                setChangeDetect(true);
+                                                                setChangeDetect1(true);
                                                             }}
                                                             style={ui.input}
                                                         />
@@ -1168,6 +1170,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                             onChange={(e) => {
                                                                 const v = e.target.value;
                                                                 setObjCapital(v);
+                                                                setChangeDetect1(true);
                                                                 if (v && Number(v) > 0) setAutoYears(true);
                                                                 else setAutoYears(false);
                                                             }}
@@ -1220,6 +1223,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                     value={years}
                                                     onChange={(e) => {
                                                         setYears((e.target as HTMLInputElement).value);
+                                                        setChangeDetect1(true);
                                                         setAutoYears(false);
                                                         setObjCapital("");
                                                     }}
@@ -1236,35 +1240,41 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                             colorBorder: "danger",
                                             pillBg: "#E11D2E",
                                             pill: "2% annuo",
-                                            note: "Obiettivo in circa 19 anni",
+                                            note: "Obiettivo in circa",
+                                            note_lt: "19 anni",
+                                            neededYears: capitalAtTargetYear(parseNum(capital), parseNum(monthly), target, 0.02, 40).years,
                                         },
                                         {
                                             title: "Autodidatta",
                                             colorBorder: "warning",
                                             pillBg: "rgb(228 161 25)",
                                             pill: "5% annuo",
-                                            note: "Obiettivo in circa 14 anni",
+                                            note: "Obiettivo in circa",
+                                            note_lt: "14 anni",
+                                            neededYears: capitalAtTargetYear(parseNum(capital), parseNum(monthly), target, 0.05, 40).years,
                                         },
                                         {
                                             title: "Strategie MIPAI",
                                             colorBorder: "success",
                                             pillBg: "#007A55",
                                             pill: "10% annuo",
-                                            note: "Obiettivo in circa 11 anni",
+                                            note: "Obiettivo in circa",
+                                            note_lt: "11 anni",
+                                            neededYears: capitalAtTargetYear(parseNum(capital), parseNum(monthly), target, 0.10, 40).years,
                                         },
                                     ].map((c) => (
-                                        <MDBCol key={c.title} xs="12" md="4" className="d-flex">
+                                        <MDBCol key={c.title} className="d-flex col-4 col-md-6 col-lg-6 col-xl-4">
                                             <MDBCard
-                                                className={`square border border-${c.colorBorder} border-2 bg-opacity-25 bg-${c.colorBorder} w-100`}
+                                                className={`square border border-${c.colorBorder} border-2 bg-opacity-25 bg-${c.colorBorder} w-100  hover-shadow`}
                                                 style={{ height: isMobile ? "auto" : 120 }}
                                             >
-                                                <MDBCardBody className="">
+                                                <MDBCardBody className={(isMobile && "d-flex flex-column justify-content-around align-items-center p-2 ") + ""}>
                                                     <MDBTypography
                                                         tag="h6"
                                                         className="mb-sm-3 gap-2 d-flex flex-sm-row align-items-start align-items-center justify-content-between"
                                                     >
-                                                        <strong style={ui.hCardTitle}>{c.title}</strong>
-                                                        <div
+                                                        <strong className={(isMobile && "text-center") + ''} style={ui.hCardTitle}>{c.title}</strong>
+                                                        {!isMobile && <div
                                                             className="d-inline-flex align-items-center px-3 py-1 fw-semibold"
                                                             style={{
                                                                 backgroundColor: c.pillBg,
@@ -1274,12 +1284,23 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                             }}
                                                         >
                                                             {c.pill}
-                                                        </div>
+                                                        </div>}
                                                     </MDBTypography>
 
-                                                    <div className="d-flex justify-content-lg-center justify-content-start">
-                                                        <small style={ui.textSmall}>{c.note}</small>
-                                                    </div>
+                                                    {objCapital !== "" ? (
+                                                        <div className="d-flex flex-column justify-content-lg-center justify-content-start align-items-center">
+                                                            {isMobile ? (
+                                                                <small style={ui.textSmall}>{c.note_lt} {c.neededYears} anni</small>
+                                                            ) : (
+                                                                <small style={ui.textSmall}>{c.note} {c.neededYears} anni</small>
+                                                            )}
+                                                            {isMobile && <small style={ui.textSmall}>{c.pill}</small>}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="d-flex flex-column justify-content-lg-center justify-content-start align-items-center">
+                                                            <small style={ui.textSmall}>{c.note} {years} anni</small>
+                                                        </div>
+                                                    )}
                                                 </MDBCardBody>
                                             </MDBCard>
                                         </MDBCol>
@@ -1289,7 +1310,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                 <div className="w-100" style={{ height: isMobile ? 320 : 400 }}>
                                     <ResponsiveLine
                                         data={lineData}
-                                        margin={{ top: 20, right: 20, bottom: isMobile ? 70 : 80, left: 70 }}
+                                        margin={{ top: 20, right: 20, bottom: isMobile ? 70 : 80, left: 45 }}
                                         xScale={{ type: "point" }}
                                         yScale={{ type: "linear", min: "auto", max: "auto", stacked: false, reverse: false }}
                                         colors={(serie) => {
@@ -1392,7 +1413,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                     </small>
                                 </div>
 
-                                {changeDetect && (
+                                {changeDetect2 && (
                                     <MDBBtn
                                         onClick={() => savePresetsBacktesting()}
                                         className="me-1"
@@ -1401,7 +1422,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                         style={{ fontSize: isMobile ? 12 : 14, padding: isMobile ? "8px 10px" : "" }}
                                     >
                                         <MDBIcon className="me-2" far icon="save" />
-                                        {saving ? "salvando..." : "salva"}
+                                        {!isMobile && (saving ? "salvando..." : "salva")}
                                     </MDBBtn>
                                 )}
                             </div>
@@ -1421,7 +1442,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                     value={capitalBacktesting}
                                                     onChange={(e) => {
                                                         setCapitalBacktesting(e.target.value);
-                                                        setChangeDetect(true);
+                                                        setChangeDetect2(true);
                                                     }}
                                                     style={ui.input}
                                                 />
@@ -1435,7 +1456,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                     value={monthlyBacktesting}
                                                     onChange={(e) => {
                                                         setMonthlyBacktesting(e.target.value);
-                                                        setChangeDetect(true);
+                                                        setChangeDetect2(true);
                                                     }}
                                                     style={ui.input}
                                                 />
@@ -1451,7 +1472,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                                     value={pastYears}
                                                     onChange={(e) => {
                                                         setPastYears((e.target as HTMLInputElement).value);
-                                                        setChangeDetect(true);
+                                                        setChangeDetect2(true);
                                                     }}
                                                 />
                                             </MDBCol>
@@ -1533,7 +1554,7 @@ const DashboardBase: React.FC<DashboardProps> = ({ userName, pageName }) => {
                                 <div className="w-100 mt-3" style={{ height: isMobile ? 320 : 400 }}>
                                     <ResponsiveLine
                                         data={backtestData}
-                                        margin={{ top: 20, right: 20, bottom: isMobile ? 90 : 100, left: 70 }}
+                                        margin={{ top: 20, right: 20, bottom: isMobile ? 90 : 100, left: 50 }}
                                         xScale={{ type: "point" }}
                                         yScale={{ type: "linear", min: "auto", max: "auto", stacked: false }}
                                         colors={(serie) => (serie as any).color}

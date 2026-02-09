@@ -112,7 +112,7 @@ function PortfolioCard({
 const Portfolio_FormFields: FieldConfig<BacktestingInfoLite>[] = [
 
     { name: "title", type: "text", label: "Titolo", required: true, grid: { md: 12 } },
-    { name: "description", type: "text_area", label: "Descrizione", required: true, grid: { md: 12 } },
+    // { name: "description", type: "text_area", label: "Descrizione", required: true, grid: { md: 12 } },
     { name: "target", type: "number", label: "Obiettivo", required: true, grid: { md: 4 } },
     // { name: "time_horizon_years", type: "number", label: "Orizzonte Temporale (anni)", required: true, grid: { md: 6 }, visible: () => false },
     { name: "cash_position", type: "number", label: "Investimento iniziale", required: true, grid: { md: 4 } },
@@ -150,6 +150,7 @@ const Backtesting: React.FC = () => {
 
     const [backtests, setBacktests] = useState<BacktestingInfo[]>([]);
     const [loading, setLoading] = useState(true);
+    const [uidCreateBacktesting, setUidCreateBacktesting] = useState<string>("")
 
 
 
@@ -245,7 +246,7 @@ const Backtesting: React.FC = () => {
                                                         </MDBBtn>
 
                                                         <div className="mt-2 fw-bold" style={ui.textBody}>
-                                                            Nuovo Portafoglio
+                                                            Nuovo Backtesting
                                                         </div>
 
 
@@ -482,30 +483,29 @@ const Backtesting: React.FC = () => {
                             <GeneralForm<BacktestingInfoLite>
                                 mode="create"
                                 createBtnProps={{
-                                    label: "Crea il tuo portafoglio",
+                                    label: "Crea il tuo Backtesting",
                                     labelSaving: "Creazione in corso",
                                 }}
-                                params={{ user_uid: UserInfoUid, time_horizon_years : 1 }}
+                                params={{ user_uid: UserInfoUid, time_horizon_years: 1 }}
                                 fields={Portfolio_FormFields}
                                 createData={async (payload) => {
                                     const res = await create_backtesting(payload);
-                                    if (res.data && res.data.backtesting_uid) {
-                                        // Return the original payload as data, or fetch the full object if needed
-                                        return {
-                                            ...res,
-                                            data: {
-                                                ...payload,
-                                                backtesting_uid: res.data.backtesting_uid,
-                                            }
-                                        };
+                                    console.log(res, "res ") 
+                                    const uid = res?.data?.backtesting_uid;
+                                    if (uid) {
+                                        setModalOpen(false);
+                                        navigate(`/backtesting/backtestingItem/${uid}`);
                                     }
+
                                     return {
                                         ...res,
-                                        data: payload
+                                        data: { ...payload, backtesting_uid: uid },
                                     };
                                 }}
-                                className='p-4 lh-lg'
-                                onSuccess={() => setModalOpen(false)}
+                                className='p-4 pt-0 lh-lg'
+                                onSuccess={() => {
+                                    setModalOpen(false)
+                                }}
                             />
 
 

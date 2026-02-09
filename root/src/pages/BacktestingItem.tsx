@@ -568,13 +568,13 @@ const BacktestingItem: React.FC = () => {
                                                                 <MDBInput label="Titolo" value={title} onChange={(e) => setTitle(e.target.value)} />
                                                             </MDBCol>
 
-                                                            <MDBCol md="12">
+                                                            {/* <MDBCol md="12">
                                                                 <MDBInput
                                                                     label="Descrizione"
                                                                     value={description}
                                                                     onChange={(e) => setDescription(e.target.value)}
                                                                 />
-                                                            </MDBCol>
+                                                            </MDBCol> */}
 
                                                             <MDBCol md="12">
                                                                 <MDBInput
@@ -617,7 +617,7 @@ const BacktestingItem: React.FC = () => {
                                                                     onClick={() => {
                                                                         if (!backtest) return;
                                                                         setTitle(backtest.title ?? "");
-                                                                        setDescription(backtest.description ?? "");
+                                                                        // setDescription(backtest.description ?? "");
                                                                         setInvestimentoInizialeProp(Number(backtest.cash_position ?? 0));
                                                                         setContributoMensile(Number(backtest.automatic_savings ?? 0));
                                                                         setTempoInvestimento(Number(backtest.time_horizon_years ?? 1));
